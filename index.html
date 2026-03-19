@@ -701,12 +701,14 @@
             { q: '염소는 노란색이다.', a: false }
         ];
 
-        // 게임 상태
+        // 게임 상태 (localStorage에 저장되어 모든 탭이 공유)
         let gameState = {
             players: [],
             currentQuizIndex: 0,
             gameActive: false,
-            paused: false
+            paused: false,
+            quizStartTime: null, // 문제 시작 시간 (타이머 동기화용)
+            totalQuizTime: 15 // 한 문제 총 시간
         };
 
         let animationFrameId = null;
@@ -757,9 +759,38 @@
                 }
             });
             
-            setInterval(syncGameState, 300);
+            setInterval(syncGameState, 100); // 더 자주 동기화 (100ms)
             setInterval(loadPlayersFromStorage, 500); // 주기적으로 플레이어 목록 동기화
             loadPlayersFromStorage();
+        }
+        
+        // 게임 상태를 localStorage에서 로드하여 동기화
+        function loadGameStateFromStorage() {
+            const key = `quizGameState_${sessionId}`;
+            const stored = localStorage.getItem(key);
+            if (stored) {
+                try {
+                    const state = JSON.parse(stored);
+                    gameState.currentQuizIndex = state.currentQuizIndex;
+                    gameState.gameActive = state.gameActive;
+                    gameState.paused = state.paused;
+                    gameState.quizStartTime = state.quizStartTime;
+                    gameState.totalQuizTime = state.totalQuizTime;
+                } catch (e) {}
+            }
+        }
+        
+        // 게임 상태를 localStorage에 저장
+        function saveGameStateToStorage() {
+            const key = `quizGameState_${sessionId}`;
+            localStorage.setItem(key, JSON.stringify({
+                currentQuizIndex: gameState.currentQuizIndex,
+                gameActive: gameState.gameActive,
+                paused: gameState.paused,
+                quizStartTime: gameState.quizStartTime,
+                totalQuizTime: gameState.totalQuizTime
+            }));
+        }
         }
 
         // localStorage 변경 감지 (다른 탭/기기)
@@ -816,34 +847,19 @@
 
         // 게임 상태 동기화
         function syncGameState() {
+            loadGameStateFromStorage();
+            
             const key = `quizGameState_${sessionId}`;
             const stored = localStorage.getItem(key);
             if (stored) {
                 try {
                     const state = JSON.parse(stored);
                     
-                    // 게임 시작 동기화
+                    // 게임 시작 요청 감지
                     if (state.startGame && !gameState.gameActive) {
                         gameState.gameActive = true;
                         gameState.currentQuizIndex = 0;
                         startGameNow();
-                    }
-                    
-                    // 일시정지 동기화
-                    if (state.paused && !gameState.paused) {
-                        gameState.paused = true;
-                        document.getElementById('pauseModal').classList.add('show');
-                        document.getElementById('quizArea').classList.add('paused');
-                        if (timerInterval) clearInterval(timerInterval);
-                    }
-                    
-                    // 게임 중지 동기화
-                    if (state.gameActive === false && gameState.gameActive) {
-                        gameState.gameActive = false;
-                        if (timerInterval) clearInterval(timerInterval);
-                        if (animationFrameId) cancelAnimationFrame(animationFrameId);
-                        document.getElementById('gameScreen').style.display = 'none';
-                        document.getElementById('selectionScreen').style.display = 'block';
                     }
                 } catch (e) {}
             }
@@ -977,6 +993,8 @@
                 player.targetX = null;
                 player.targetY = null;
             });
+            savePlayersToStorage();
+            saveGameStateToStorage();
 
             document.getElementById('selectionScreen').style.display = 'none';
             document.getElementById('gameScreen').style.display = 'block';
@@ -1090,6 +1108,24 @@
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
 
             const animate = () => {
+                // 다른 탭의 플레이어 위치 실시간 동기화
+                const key = `quizGamePlayers_${sessionId}`;
+                const stored = localStorage.getItem(key);
+                if (stored) {
+                    try {
+                        const remotePlayers = JSON.parse(stored);
+                        remotePlayers.forEach((remotePlayer, idx) => {
+                            if (gameState.players[idx]) {
+                                // 다른 탭의 플레이어 위치만 업데이트
+                                gameState.players[idx].x = remotePlayer.x;
+                                gameState.players[idx].y = remotePlayer.y;
+                                gameState.players[idx].inO = remotePlayer.inO;
+                                gameState.players[idx].eliminated = remotePlayer.eliminated;
+                            }
+                        });
+                    } catch (e) {}
+                }
+
                 gameState.players.forEach(player => {
                     if (player.targetX !== null && player.targetY !== null && !gameState.paused) {
                         const dx = player.targetX - player.x;
@@ -1144,17 +1180,22 @@
             document.getElementById('quizNumber').textContent = `문제 ${gameState.currentQuizIndex + 1}/10`;
             document.getElementById('quizQuestion').textContent = quiz.q;
 
-            let timeLeft = 15;
+            // 문제 시작 시간 기록 (모든 탭이 같은 기준)
+            gameState.quizStartTime = Date.now();
+            saveGameStateToStorage();
+            
+            let timeLeft = gameState.totalQuizTime;
             const timerEl = document.getElementById('quizTimer');
-            timerEl.textContent = timeLeft + '초';
             timerEl.classList.remove('urgent');
 
             if (timerInterval) clearInterval(timerInterval);
             
+            // 타이머는 경과 시간으로 계산 (동기화)
             timerInterval = setInterval(() => {
                 if (gameState.paused) return;
 
-                timeLeft--;
+                const elapsed = Math.floor((Date.now() - gameState.quizStartTime) / 1000);
+                timeLeft = gameState.totalQuizTime - elapsed;
                 timerEl.textContent = timeLeft + '초';
 
                 if (timeLeft <= 3) {
@@ -1168,7 +1209,7 @@
                     clearInterval(timerInterval);
                     checkAnswers(quiz.a);
                 }
-            }, 1000);
+            }, 100);
         }
 
         function playBeep() {
@@ -1192,11 +1233,7 @@
         function pauseGame() {
             if (gameState.gameActive && !gameState.paused) {
                 gameState.paused = true;
-                // 다른 탭과 동기화
-                const stateKey = `quizGameState_${sessionId}`;
-                const state = JSON.parse(localStorage.getItem(stateKey) || '{}');
-                state.paused = true;
-                localStorage.setItem(stateKey, JSON.stringify(state));
+                saveGameStateToStorage();
                 
                 document.getElementById('pauseModal').classList.add('show');
                 document.getElementById('quizArea').classList.add('paused');
@@ -1207,11 +1244,7 @@
         function resumeGame() {
             if (gameState.paused) {
                 gameState.paused = false;
-                // 다른 탭과 동기화
-                const stateKey = `quizGameState_${sessionId}`;
-                const state = JSON.parse(localStorage.getItem(stateKey) || '{}');
-                state.paused = false;
-                localStorage.setItem(stateKey, JSON.stringify(state));
+                saveGameStateToStorage();
                 
                 document.getElementById('pauseModal').classList.remove('show');
                 document.getElementById('quizArea').classList.remove('paused');
@@ -1221,12 +1254,8 @@
 
         function stopGame() {
             gameState.gameActive = false;
-            // 다른 탭과 동기화
-            const stateKey = `quizGameState_${sessionId}`;
-            const state = JSON.parse(localStorage.getItem(stateKey) || '{}');
-            state.gameActive = false;
-            state.paused = false;
-            localStorage.setItem(stateKey, JSON.stringify(state));
+            gameState.paused = false;
+            saveGameStateToStorage();
             
             if (timerInterval) clearInterval(timerInterval);
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
@@ -1263,6 +1292,8 @@
             });
 
             updatePlayersStatus();
+            savePlayersToStorage();
+            saveGameStateToStorage();
 
             const activePlayers = gameState.players.filter(p => !p.eliminated);
             if (activePlayers.length === 0 && gameState.currentQuizIndex < QUIZZES.length - 1) {
@@ -1271,6 +1302,7 @@
                 endGame();
             } else {
                 gameState.currentQuizIndex++;
+                saveGameStateToStorage();
                 setTimeout(nextQuiz, 2000);
             }
         }
@@ -1283,10 +1315,12 @@
                 player.lives = 1; // 한 목숨만 제공
                 player.eliminated = false;
             });
+            savePlayersToStorage();
 
             setTimeout(() => {
                 bonusOverlay.classList.remove('show');
                 gameState.currentQuizIndex++;
+                saveGameStateToStorage();
                 nextQuiz();
             }, 2000);
         }
@@ -1312,6 +1346,8 @@
 
         function endGame() {
             gameState.gameActive = false;
+            saveGameStateToStorage();
+            
             if (timerInterval) clearInterval(timerInterval);
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
 
