@@ -615,9 +615,6 @@
                 <h3>대기 중인 플레이어</h3>
                 <div class="players-list" id="playersList"></div>
                 <button class="ready-button" id="readyButton" disabled>준비 완료</button>
-                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
-                    <button class="entry-button" id="deleteButton" style="background: #ff6b6b; margin-top: 10px;">아이디 삭제</button>
-                </div>
             </div>
         </div>
 
@@ -725,7 +722,6 @@
                 if (e.key === 'Enter') enterGame();
             });
             document.getElementById('readyButton').addEventListener('click', toggleReady);
-            document.getElementById('deleteButton').addEventListener('click', deletePlayer);
             document.getElementById('pauseButton').addEventListener('click', pauseGame);
             document.getElementById('resumeButton').addEventListener('click', resumeGame);
             document.getElementById('stopButton').addEventListener('click', stopGame);
@@ -785,6 +781,10 @@
                 localStorage.removeItem(`myPlayerName_${sessionId}`);
                 savePlayersToStorage();
                 updatePlayersList();
+                
+                // 입력 필드 초기화 및 포커스
+                document.getElementById('playerNameInput').value = '';
+                document.getElementById('playerNameInput').focus();
             }
         }
 
@@ -851,6 +851,7 @@
             const playersList = document.getElementById('playersList');
             const playerCountDisplay = document.getElementById('playerCountDisplay');
             const readyButton = document.getElementById('readyButton');
+            const myName = localStorage.getItem(`myPlayerName_${sessionId}`);
 
             playerCountDisplay.textContent = gameState.players.length;
 
@@ -860,15 +861,28 @@
                 return;
             }
 
-            playersList.innerHTML = gameState.players.map(player => `
-                <div class="player-item">
-                    <div class="player-item-left">
-                        <div class="player-item-emoji">${player.emoji}</div>
-                        <div class="player-item-name">${player.name}</div>
+            playersList.innerHTML = gameState.players.map((player, idx) => {
+                const isMe = player.name === myName;
+                return `
+                    <div class="player-item" style="${isMe ? 'background: rgba(102, 126, 234, 0.1); border-left: 4px solid #667eea;' : ''}">
+                        <div class="player-item-left">
+                            <div class="player-item-emoji">${player.emoji}</div>
+                            <div class="player-item-name">${player.name}${isMe ? ' 👉 나' : ''}</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            ${player.ready ? '<div class="ready-badge">✓ Ready</div>' : ''}
+                            ${isMe ? `<button class="delete-player-btn" data-index="${idx}" style="background: #ff6b6b; color: white; border: none; width: 28px; height: 28px; border-radius: 4px; cursor: pointer; font-size: 0.9em; padding: 0; display: flex; align-items: center; justify-content: center;">✕</button>` : ''}
+                        </div>
                     </div>
-                    ${player.ready ? '<div class="ready-badge">✓ Ready</div>' : ''}
-                </div>
-            `).join('');
+                `;
+            }).join('');
+
+            // X 버튼 클릭 핸들러
+            document.querySelectorAll('.delete-player-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    deletePlayer();
+                });
+            });
 
             readyButton.disabled = false;
             updateReadyButton();
