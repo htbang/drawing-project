@@ -708,10 +708,17 @@
         let animationFrameId = null;
         let timerInterval = null;
         let sessionId = null;
+        let tabId = null; // 각 탭마다 고유한 ID
 
-        // 세션 ID 생성 및 관리 (모든 탭/기기가 같은 sessionId 공유)
+        // 세션 ID 및 탭 ID 생성
         function initSession() {
             sessionId = 'quizGame';
+            // 탭별 고유 ID 생성 (같은 브라우저 창에서도 탭마다 다름)
+            tabId = sessionStorage.getItem('tabId');
+            if (!tabId) {
+                tabId = 'tab_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                sessionStorage.setItem('tabId', tabId);
+            }
         }
 
         // 초기화
@@ -732,14 +739,11 @@
             
             // 페이지 닫거나 새로고침 시 자신의 플레이어 삭제
             window.addEventListener('beforeunload', () => {
-                const myName = sessionStorage.getItem(`myPlayerName_${sessionId}`);
-                if (myName) {
-                    const index = gameState.players.findIndex(p => p.name === myName);
-                    if (index >= 0) {
-                        gameState.players.splice(index, 1);
-                        savePlayersToStorage();
-                    }
-                    sessionStorage.removeItem(`myPlayerName_${sessionId}`);
+                const myTabId = sessionStorage.getItem('tabId');
+                const index = gameState.players.findIndex(p => p.tabId === myTabId);
+                if (index >= 0) {
+                    gameState.players.splice(index, 1);
+                    savePlayersToStorage();
                 }
             });
             
@@ -786,12 +790,11 @@
 
         // 플레이어 삭제
         function deletePlayer() {
-            const myName = sessionStorage.getItem(`myPlayerName_${sessionId}`);
-            const index = gameState.players.findIndex(p => p.name === myName);
+            const myTabId = sessionStorage.getItem('tabId');
+            const index = gameState.players.findIndex(p => p.tabId === myTabId);
             
             if (index >= 0) {
                 gameState.players.splice(index, 1);
-                sessionStorage.removeItem(`myPlayerName_${sessionId}`);
                 savePlayersToStorage();
                 updatePlayersList();
                 
@@ -837,6 +840,7 @@
 
             const player = {
                 id: gameState.players.length,
+                tabId: tabId, // 탭 고유 ID 저장
                 name: name,
                 emoji: CHARACTER_EMOJIS[emojiIdx],
                 color: CHARACTER_COLORS[colorIdx],
@@ -851,7 +855,6 @@
             };
 
             gameState.players.push(player);
-            sessionStorage.setItem(`myPlayerName_${sessionId}`, name);
             savePlayersToStorage();
             updatePlayersList();
 
@@ -864,7 +867,7 @@
             const playersList = document.getElementById('playersList');
             const playerCountDisplay = document.getElementById('playerCountDisplay');
             const readyButton = document.getElementById('readyButton');
-            const myName = sessionStorage.getItem(`myPlayerName_${sessionId}`);
+            const myTabId = sessionStorage.getItem('tabId');
 
             playerCountDisplay.textContent = gameState.players.length;
 
@@ -875,7 +878,7 @@
             }
 
             playersList.innerHTML = gameState.players.map((player, idx) => {
-                const isMe = player.name === myName;
+                const isMe = player.tabId === myTabId;
                 return `
                     <div class="player-item" style="${isMe ? 'background: rgba(102, 126, 234, 0.1); border-left: 4px solid #667eea;' : ''}">
                         <div class="player-item-left">
@@ -908,8 +911,8 @@
         }
 
         function updateReadyButton() {
-            const myName = sessionStorage.getItem(`myPlayerName_${sessionId}`);
-            const myPlayer = gameState.players.find(p => p.name === myName);
+            const myTabId = sessionStorage.getItem('tabId');
+            const myPlayer = gameState.players.find(p => p.tabId === myTabId);
             const readyButton = document.getElementById('readyButton');
 
             if (myPlayer && myPlayer.ready) {
@@ -923,14 +926,8 @@
 
         // Ready 토글
         function toggleReady() {
-            let myName = sessionStorage.getItem(`myPlayerName_${sessionId}`);
-            let myPlayer = gameState.players.find(p => p.name === myName);
-
-            if (!myPlayer && gameState.players.length > 0) {
-                myName = gameState.players[0].name;
-                sessionStorage.setItem(`myPlayerName_${sessionId}`, myName);
-                myPlayer = gameState.players[0];
-            }
+            const myTabId = sessionStorage.getItem('tabId');
+            const myPlayer = gameState.players.find(p => p.tabId === myTabId);
 
             if (myPlayer) {
                 myPlayer.ready = !myPlayer.ready;
@@ -999,8 +996,8 @@
         function setupKeyboardMovement() {
             document.addEventListener('keydown', (e) => {
                 if (!gameState.gameActive) return;
-                const myName = sessionStorage.getItem(`myPlayerName_${sessionId}`);
-                const myPlayer = gameState.players.find(p => p.name === myName);
+                const myTabId = sessionStorage.getItem('tabId');
+                const myPlayer = gameState.players.find(p => p.tabId === myTabId);
                 
                 if (!myPlayer || myPlayer.eliminated) return;
 
