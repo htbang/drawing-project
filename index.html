@@ -182,6 +182,43 @@
             display: none;
         }
 
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+
+        .game-header button {
+            padding: 8px 16px;
+            font-size: 0.9em;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .pause-button {
+            background: #ffa500;
+            color: white;
+        }
+
+        .pause-button:hover {
+            background: #ff8c00;
+            transform: translateY(-2px);
+        }
+
+        .stop-button {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .stop-button:hover {
+            background: #ff5252;
+            transform: translateY(-2px);
+        }
+
         .quiz-area {
             background: white;
             border-radius: 15px;
@@ -232,6 +269,10 @@
             grid-template-columns: 1fr 1fr;
             gap: 15px;
             margin-bottom: 20px;
+        }
+
+        .game-board-container.vertical {
+            grid-template-columns: 1fr;
         }
 
         .answer-area {
@@ -373,6 +414,73 @@
             color: #999;
         }
 
+        /* 일시정지 모달 */
+        .pause-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pause-modal.show {
+            display: flex;
+        }
+
+        .pause-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+        }
+
+        .pause-content h2 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+
+        .pause-content p {
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+        }
+
+        .pause-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .resume-button {
+            background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1em;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .resume-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .quiz-area.paused {
+            filter: blur(8px);
+            pointer-events: none;
+        }
+
         /* 보너스 라운드 */
         .bonus-overlay {
             display: none;
@@ -479,6 +587,14 @@
                 height: 45px;
                 font-size: 1.5em;
             }
+
+            .game-header {
+                flex-wrap: wrap;
+            }
+
+            .pause-content {
+                padding: 30px 20px;
+            }
         }
     </style>
 </head>
@@ -499,12 +615,23 @@
                 <h3>대기 중인 플레이어</h3>
                 <div class="players-list" id="playersList"></div>
                 <button class="ready-button" id="readyButton" disabled>준비 완료</button>
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
+                    <button class="entry-button" id="deleteButton" style="background: #ff6b6b; margin-top: 10px;">아이디 삭제</button>
+                </div>
             </div>
         </div>
 
         <!-- 게임 화면 -->
         <div class="game-screen" id="gameScreen">
-            <div class="quiz-area">
+            <div class="game-header">
+                <div>🎮 게임 진행 중</div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="pause-button" id="pauseButton">⏸ 일시정지</button>
+                    <button class="stop-button" id="stopButton">⏹ 게임중지</button>
+                </div>
+            </div>
+
+            <div class="quiz-area" id="quizArea">
                 <div class="quiz-number" id="quizNumber">문제 1/10</div>
                 <div class="quiz-question" id="quizQuestion">문제가 로드 중입니다...</div>
                 <div class="quiz-timer" id="quizTimer">15초</div>
@@ -512,7 +639,7 @@
 
             <div class="players-status" id="playersStatus"></div>
 
-            <div class="game-board-container">
+            <div class="game-board-container" id="gameBoardContainer">
                 <div class="answer-area o-area" id="oArea">
                     <div class="answer-label">O(참)</div>
                 </div>
@@ -523,6 +650,17 @@
 
             <div class="controls-info">
                 👆 답변 영역을 클릭하여 이동하세요
+            </div>
+        </div>
+
+        <!-- 일시정지 모달 -->
+        <div class="pause-modal" id="pauseModal">
+            <div class="pause-content">
+                <h2>⏸ 일시정지</h2>
+                <p>좌우 키로만 이동할 수 있습니다</p>
+                <div class="pause-buttons">
+                    <button class="resume-button" id="resumeButton">게임 재개</button>
+                </div>
             </div>
         </div>
 
@@ -567,17 +705,34 @@
             players: [],
             currentQuizIndex: 0,
             gameActive: false,
+            paused: false
         };
 
         let animationFrameId = null;
+        let timerInterval = null;
+        let sessionId = null;
+
+        // 세션 ID 생성 및 관리
+        function initSession() {
+            sessionId = sessionStorage.getItem('quizGameSessionId');
+            if (!sessionId) {
+                sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                sessionStorage.setItem('quizGameSessionId', sessionId);
+            }
+        }
 
         // 초기화
         function init() {
+            initSession();
             document.getElementById('entryButton').addEventListener('click', enterGame);
             document.getElementById('playerNameInput').addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') enterGame();
             });
             document.getElementById('readyButton').addEventListener('click', toggleReady);
+            document.getElementById('deleteButton').addEventListener('click', deletePlayer);
+            document.getElementById('pauseButton').addEventListener('click', pauseGame);
+            document.getElementById('resumeButton').addEventListener('click', resumeGame);
+            document.getElementById('stopButton').addEventListener('click', stopGame);
             document.getElementById('restartButton').addEventListener('click', () => location.reload());
             
             setInterval(syncGameState, 300);
@@ -586,7 +741,8 @@
 
         // 로컬스토리지에서 플레이어 로드
         function loadPlayersFromStorage() {
-            const stored = localStorage.getItem('quizGamePlayers');
+            const key = `quizGamePlayers_${sessionId}`;
+            const stored = localStorage.getItem(key);
             if (stored) {
                 try {
                     gameState.players = JSON.parse(stored);
@@ -599,12 +755,27 @@
 
         // 로컬스토리지에 플레이어 저장
         function savePlayersToStorage() {
-            localStorage.setItem('quizGamePlayers', JSON.stringify(gameState.players));
+            const key = `quizGamePlayers_${sessionId}`;
+            localStorage.setItem(key, JSON.stringify(gameState.players));
+        }
+
+        // 플레이어 삭제
+        function deletePlayer() {
+            const myName = localStorage.getItem(`myPlayerName_${sessionId}`);
+            const index = gameState.players.findIndex(p => p.name === myName);
+            
+            if (index >= 0) {
+                gameState.players.splice(index, 1);
+                localStorage.removeItem(`myPlayerName_${sessionId}`);
+                savePlayersToStorage();
+                updatePlayersList();
+            }
         }
 
         // 게임 상태 동기화
         function syncGameState() {
-            const stored = localStorage.getItem('quizGameState');
+            const key = `quizGameState_${sessionId}`;
+            const stored = localStorage.getItem(key);
             if (stored) {
                 try {
                     const state = JSON.parse(stored);
@@ -651,6 +822,7 @@
             };
 
             gameState.players.push(player);
+            localStorage.setItem(`myPlayerName_${sessionId}`, name);
             savePlayersToStorage();
             updatePlayersList();
 
@@ -687,12 +859,13 @@
             
             const allReady = gameState.players.every(p => p.ready);
             if (allReady && gameState.players.length > 0) {
-                localStorage.setItem('quizGameState', JSON.stringify({ startGame: true }));
+                const key = `quizGameState_${sessionId}`;
+                localStorage.setItem(key, JSON.stringify({ startGame: true }));
             }
         }
 
         function updateReadyButton() {
-            const myName = localStorage.getItem('myPlayerName');
+            const myName = localStorage.getItem(`myPlayerName_${sessionId}`);
             const myPlayer = gameState.players.find(p => p.name === myName);
             const readyButton = document.getElementById('readyButton');
 
@@ -707,12 +880,12 @@
 
         // Ready 토글
         function toggleReady() {
-            let myName = localStorage.getItem('myPlayerName');
+            let myName = localStorage.getItem(`myPlayerName_${sessionId}`);
             let myPlayer = gameState.players.find(p => p.name === myName);
 
             if (!myPlayer && gameState.players.length > 0) {
                 myName = gameState.players[0].name;
-                localStorage.setItem('myPlayerName', myName);
+                localStorage.setItem(`myPlayerName_${sessionId}`, myName);
                 myPlayer = gameState.players[0];
             }
 
@@ -726,6 +899,7 @@
         function startGameNow() {
             gameState.currentQuizIndex = 0;
             gameState.gameActive = true;
+            gameState.paused = false;
 
             gameState.players.forEach(player => {
                 player.lives = 2;
@@ -767,15 +941,58 @@
                 updatePlayerPosition(player, playerEl);
             });
 
-            document.getElementById('oArea').addEventListener('click', (e) => moveTowards(e, true));
-            document.getElementById('xArea').addEventListener('click', (e) => moveTowards(e, false));
+            document.getElementById('oArea').addEventListener('click', (e) => {
+                if (!gameState.paused) moveTowards(e, true);
+            });
+            document.getElementById('xArea').addEventListener('click', (e) => {
+                if (!gameState.paused) moveTowards(e, false);
+            });
 
+            setupKeyboardMovement();
             updatePlayersStatus();
             startAnimationLoop();
         }
 
+        function setupKeyboardMovement() {
+            document.addEventListener('keydown', (e) => {
+                if (!gameState.gameActive) return;
+                const myName = localStorage.getItem(`myPlayerName_${sessionId}`);
+                const myPlayer = gameState.players.find(p => p.name === myName);
+                
+                if (!myPlayer || myPlayer.eliminated) return;
+
+                if ((e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') && gameState.paused) {
+                    movePlayerLeft(myPlayer);
+                } else if ((e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') && gameState.paused) {
+                    movePlayerRight(myPlayer);
+                }
+            });
+        }
+
+        function movePlayerLeft(player) {
+            const xArea = document.getElementById('xArea');
+            player.inO = false;
+            const element = document.getElementById(`player${player.id}`);
+            const parent = element.parentElement;
+            if (parent.id !== 'xArea') {
+                xArea.appendChild(element);
+            }
+        }
+
+        function movePlayerRight(player) {
+            const oArea = document.getElementById('oArea');
+            player.inO = true;
+            const element = document.getElementById(`player${player.id}`);
+            const parent = element.parentElement;
+            if (parent.id !== 'oArea') {
+                oArea.appendChild(element);
+            }
+        }
+
         function moveTowards(event, isO) {
-            const area = event.target.closest('.answer-area');
+            if (gameState.paused) return;
+
+            const area = event.currentTarget;
             if (!area) return;
 
             const rect = area.getBoundingClientRect();
@@ -784,8 +1001,15 @@
 
             gameState.players.forEach(player => {
                 if (!player.eliminated && gameState.gameActive) {
+                    player.inO = isO;
                     player.targetX = Math.max(0, Math.min(clickX - 25, rect.width - 50));
                     player.targetY = Math.max(0, Math.min(clickY - 25, rect.height - 50));
+
+                    const element = document.getElementById(`player${player.id}`);
+                    const newArea = isO ? document.getElementById('oArea') : document.getElementById('xArea');
+                    if (element && element.parentElement !== newArea) {
+                        newArea.appendChild(element);
+                    }
                 }
             });
         }
@@ -795,7 +1019,7 @@
 
             const animate = () => {
                 gameState.players.forEach(player => {
-                    if (player.targetX !== null && player.targetY !== null) {
+                    if (player.targetX !== null && player.targetY !== null && !gameState.paused) {
                         const dx = player.targetX - player.x;
                         const dy = player.targetY - player.y;
                         const distance = Math.sqrt(dx * dx + dy * dy);
@@ -853,7 +1077,11 @@
             timerEl.textContent = timeLeft + '초';
             timerEl.classList.remove('urgent');
 
-            const timer = setInterval(() => {
+            if (timerInterval) clearInterval(timerInterval);
+            
+            timerInterval = setInterval(() => {
+                if (gameState.paused) return;
+
                 timeLeft--;
                 timerEl.textContent = timeLeft + '초';
 
@@ -865,7 +1093,7 @@
                 }
 
                 if (timeLeft <= 0) {
-                    clearInterval(timer);
+                    clearInterval(timerInterval);
                     checkAnswers(quiz.a);
                 }
             }, 1000);
@@ -887,6 +1115,41 @@
                 oscillator.start(audioContext.currentTime);
                 oscillator.stop(audioContext.currentTime + 0.1);
             } catch (e) {}
+        }
+
+        function pauseGame() {
+            if (gameState.gameActive && !gameState.paused) {
+                gameState.paused = true;
+                document.getElementById('pauseModal').classList.add('show');
+                document.getElementById('quizArea').classList.add('paused');
+                if (timerInterval) clearInterval(timerInterval);
+            }
+        }
+
+        function resumeGame() {
+            if (gameState.paused) {
+                gameState.paused = false;
+                document.getElementById('pauseModal').classList.remove('show');
+                document.getElementById('quizArea').classList.remove('paused');
+                nextQuiz();
+            }
+        }
+
+        function stopGame() {
+            gameState.gameActive = false;
+            if (timerInterval) clearInterval(timerInterval);
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+
+            document.getElementById('gameScreen').style.display = 'none';
+            document.getElementById('selectionScreen').style.display = 'block';
+            
+            gameState.players.forEach(p => {
+                p.lives = 2;
+                p.eliminated = false;
+                p.ready = false;
+            });
+            savePlayersToStorage();
+            updatePlayersList();
         }
 
         function checkAnswers(correctAnswer) {
@@ -958,6 +1221,7 @@
 
         function endGame() {
             gameState.gameActive = false;
+            if (timerInterval) clearInterval(timerInterval);
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
 
             document.getElementById('gameScreen').style.display = 'none';
