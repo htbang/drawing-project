@@ -26,7 +26,7 @@
             max-width: 900px;
         }
 
-        /* 플레이어 선택 화면 */
+        /* 플레이어 입장 화면 */
         .selection-screen {
             background: white;
             border-radius: 20px;
@@ -37,42 +37,98 @@
 
         .selection-screen h1 {
             color: #333;
-            margin-bottom: 30px;
+            margin-bottom: 10px;
             font-size: 2em;
         }
 
-        .color-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-            gap: 15px;
+        .selection-screen .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1em;
+        }
+
+        .entry-form {
             margin-bottom: 30px;
         }
 
-        .color-option {
+        .player-name-input {
             width: 100%;
-            aspect-ratio: 1;
-            border-radius: 50%;
-            border: 3px solid #ddd;
+            padding: 12px;
+            margin: 10px 0;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+
+        .player-name-input:focus {
+            outline: none;
+            border-color: #764ba2;
+            box-shadow: 0 0 10px rgba(118, 75, 162, 0.3);
+        }
+
+        .entry-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.1em;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 30px;
+            transition: all 0.3s;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        .entry-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .entry-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .waiting-area {
+            background: #f9f9f9;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+
+        .waiting-area h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .players-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .player-item {
+            background: white;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 8px;
             display: flex;
             align-items: center;
-            justify-content: center;
-            transition: all 0.3s;
+            gap: 10px;
+            border: 2px solid #ddd;
         }
 
-        .color-option:hover {
-            transform: scale(1.1);
-            border-color: #333;
+        .player-item-emoji {
+            font-size: 1.5em;
         }
 
-        .color-option.selected {
-            border-color: #333;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+        .player-item-name {
+            font-weight: bold;
+            color: #333;
         }
 
         .start-button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
             color: white;
             border: none;
             padding: 15px 40px;
@@ -81,6 +137,7 @@
             cursor: pointer;
             transition: all 0.3s;
             margin-top: 20px;
+            width: 100%;
         }
 
         .start-button:hover:not(:disabled) {
@@ -93,13 +150,11 @@
             cursor: not-allowed;
         }
 
-        .player-name-input {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            font-size: 1em;
+        .player-count {
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 15px;
         }
 
         /* 게임 화면 */
@@ -183,31 +238,48 @@
         }
 
         .player {
-            width: 40px;
-            height: 40px;
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
             position: absolute;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.2em;
-            border: 2px solid rgba(0, 0, 0, 0.2);
+            font-size: 1.8em;
+            border: 3px solid rgba(255, 255, 255, 0.8);
             font-weight: bold;
             color: white;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
             cursor: move;
             user-select: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            transition: all 0.1s;
+            animation: float 3s ease-in-out infinite;
         }
 
-        .player-info {
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .player:hover {
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+            transform: scale(1.1);
+        }
+
+        .player-name {
             position: absolute;
-            top: 5px;
-            left: 5px;
-            font-size: 0.7em;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 2px 5px;
-            border-radius: 3px;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
             color: white;
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-size: 0.7em;
+            white-space: nowrap;
+            font-weight: bold;
+            border: 1px solid white;
         }
 
         .players-status {
@@ -349,13 +421,22 @@
 </head>
 <body>
     <div class="container">
-        <!-- 플레이어 선택 화면 -->
+        <!-- 플레이어 입장 화면 -->
         <div class="selection-screen" id="selectionScreen">
             <h1>🎮 O/X 상식퀴즈 게임</h1>
+            <p class="subtitle">게임에 참여하려면 이름을 입력하세요!</p>
             
-            <div id="playersInput"></div>
-            
-            <button class="start-button" id="startButton" disabled>게임 시작</button>
+            <div class="entry-form">
+                <input type="text" id="playerNameInput" class="player-name-input" placeholder="플레이어 이름을 입력하세요" maxlength="15">
+                <button class="entry-button" id="entryButton">입장하기</button>
+            </div>
+
+            <div class="waiting-area">
+                <div class="player-count">접속 인원: <span id="playerCountDisplay">0</span>명</div>
+                <h3>대기 중인 플레이어</h3>
+                <div class="players-list" id="playersList"></div>
+                <button class="start-button" id="startButton" disabled>게임 시작</button>
+            </div>
         </div>
 
         <!-- 게임 화면 -->
@@ -393,15 +474,12 @@
 
     <script>
         // 게임 설정
-        const COLORS = [
-            { name: '빨강', hex: '#ff6b6b', emoji: '🔴' },
-            { name: '파랑', hex: '#4c6ef5', emoji: '🔵' },
-            { name: '초록', hex: '#51cf66', emoji: '💚' },
-            { name: '노랑', hex: '#ffd93d', emoji: '💛' },
-            { name: '보라', hex: '#c084fc', emoji: '🟣' },
-            { name: '주황', hex: '#ff922b', emoji: '🟠' },
-            { name: '핑크', hex: '#ff6b9d', emoji: '💗' },
-            { name: '민트', hex: '#06d6a0', emoji: '💚' }
+        const CHARACTER_EMOJIS = ['🐱', '🐶', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵'];
+        
+        const CHARACTER_COLORS = [
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
+            '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B88B', '#ABEBC6',
+            '#F1948A', '#AED6F1', '#F5B041', '#D7BDE2', '#A9DFBF'
         ];
 
         const QUIZZES = [
@@ -421,142 +499,119 @@
         let gameState = {
             players: [],
             currentQuizIndex: 0,
-            gameActive: true,
-            selectedColors: new Set()
+            gameActive: false,
+            waiting: true
         };
 
         // 초기화
         function init() {
-            renderColorSelection();
+            document.getElementById('entryButton').addEventListener('click', enterGame);
+            document.getElementById('playerNameInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') enterGame();
+            });
             document.getElementById('startButton').addEventListener('click', startGame);
             document.getElementById('restartButton').addEventListener('click', () => location.reload());
-        }
-
-        // 플레이어 수 선택
-        function renderColorSelection() {
-            const container = document.getElementById('playersInput');
-            container.innerHTML = '<p style="margin-bottom: 15px; color: #666;">플레이어 수를 선택하세요 (2-4명):</p>';
             
-            for (let i = 2; i <= 4; i++) {
-                const btn = document.createElement('button');
-                btn.textContent = `${i}명`;
-                btn.className = 'start-button';
-                btn.style.margin = '5px';
-                btn.onclick = () => selectPlayers(i);
-                container.appendChild(btn);
+            loadPlayersFromStorage();
+        }
+
+        // 로컬스토리지에서 플레이어 로드
+        function loadPlayersFromStorage() {
+            const stored = localStorage.getItem('quizGamePlayers');
+            if (stored) {
+                try {
+                    gameState.players = JSON.parse(stored);
+                    updatePlayersList();
+                } catch (e) {
+                    gameState.players = [];
+                }
             }
         }
 
-        function selectPlayers(count) {
-            gameState.players = [];
-            gameState.selectedColors.clear();
-            
-            const container = document.getElementById('playersInput');
-            container.innerHTML = '';
-
-            for (let i = 0; i < count; i++) {
-                const playerDiv = document.createElement('div');
-                playerDiv.style.margin = '15px 0';
-
-                const label = document.createElement('label');
-                label.textContent = `플레이어 ${i + 1}`;
-                label.style.display = 'block';
-                label.style.marginBottom = '8px';
-                label.style.color = '#333';
-                label.style.fontWeight = 'bold';
-
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.placeholder = `플레이어 ${i + 1} 이름`;
-                input.className = 'player-name-input';
-                input.id = `playerName${i}`;
-
-                playerDiv.appendChild(label);
-                playerDiv.appendChild(input);
-                container.appendChild(playerDiv);
-            }
-
-            // 색상 선택
-            const colorLabel = document.createElement('p');
-            colorLabel.textContent = '각 플레이어의 색상을 선택하세요:';
-            colorLabel.style.marginTop = '20px';
-            colorLabel.style.fontWeight = 'bold';
-            colorLabel.style.color = '#333';
-            container.appendChild(colorLabel);
-
-            const colorGrid = document.createElement('div');
-            colorGrid.className = 'color-grid';
-            colorGrid.style.marginTop = '15px';
-
-            COLORS.forEach((color, idx) => {
-                const colorBtn = document.createElement('div');
-                colorBtn.className = 'color-option';
-                colorBtn.style.backgroundColor = color.hex;
-                colorBtn.textContent = color.emoji;
-                colorBtn.dataset.colorIdx = idx;
-                colorBtn.onclick = () => toggleColor(colorBtn, idx, count);
-                colorGrid.appendChild(colorBtn);
-            });
-
-            container.appendChild(colorGrid);
-
-            document.getElementById('startButton').disabled = false;
+        // 로컬스토리지에 플레이어 저장
+        function savePlayersToStorage() {
+            localStorage.setItem('quizGamePlayers', JSON.stringify(gameState.players));
         }
 
-        let selectedColorIndices = [];
+        // 게임 입장
+        function enterGame() {
+            const nameInput = document.getElementById('playerNameInput');
+            const name = nameInput.value.trim();
 
-        function toggleColor(btn, idx, playerCount) {
-            const index = selectedColorIndices.indexOf(idx);
-            
-            if (index >= 0) {
-                selectedColorIndices.splice(index, 1);
-                btn.classList.remove('selected');
-            } else if (selectedColorIndices.length < playerCount) {
-                selectedColorIndices.push(idx);
-                btn.classList.add('selected');
-            } else {
-                alert(`${playerCount}명의 플레이어만 선택 가능합니다!`);
+            if (!name) {
+                alert('이름을 입력해주세요!');
+                return;
             }
 
-            checkStartButton(playerCount);
-        }
-
-        function checkStartButton(playerCount) {
-            const allNames = [];
-            for (let i = 0; i < playerCount; i++) {
-                const name = document.getElementById(`playerName${i}`).value.trim();
-                allNames.push(name);
+            if (gameState.players.some(p => p.name === name)) {
+                alert('이미 입장한 이름입니다!');
+                return;
             }
 
-            const allNamed = allNames.every(n => n.length > 0);
-            const allColorsSelected = selectedColorIndices.length === playerCount;
+            const colorIdx = gameState.players.length % CHARACTER_COLORS.length;
+            const emojiIdx = gameState.players.length % CHARACTER_EMOJIS.length;
 
-            document.getElementById('startButton').disabled = !(allNamed && allColorsSelected);
+            const player = {
+                id: gameState.players.length,
+                name: name,
+                emoji: CHARACTER_EMOJIS[emojiIdx],
+                color: CHARACTER_COLORS[colorIdx],
+                x: Math.random() * 200 + 50,
+                y: Math.random() * 100 + 50,
+                lives: 2,
+                eliminated: false,
+                inO: true
+            };
+
+            gameState.players.push(player);
+            savePlayersToStorage();
+            updatePlayersList();
+
+            nameInput.value = '';
+            nameInput.focus();
         }
 
+        // 플레이어 목록 업데이트
+        function updatePlayersList() {
+            const playersList = document.getElementById('playersList');
+            const playerCountDisplay = document.getElementById('playerCountDisplay');
+            const startButton = document.getElementById('startButton');
+
+            playerCountDisplay.textContent = gameState.players.length;
+
+            if (gameState.players.length === 0) {
+                playersList.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">입장한 플레이어가 없습니다.</p>';
+                startButton.disabled = true;
+                return;
+            }
+
+            playersList.innerHTML = gameState.players.map(player => `
+                <div class="player-item">
+                    <div class="player-item-emoji">${player.emoji}</div>
+                    <div class="player-item-name">${player.name}</div>
+                </div>
+            `).join('');
+
+            startButton.disabled = gameState.players.length < 1;
+        }
+
+        // 게임 시작
         function startGame() {
-            const playerCount = document.querySelectorAll('[id^="playerName"]').length;
-            
-            gameState.players = [];
-            for (let i = 0; i < playerCount; i++) {
-                const name = document.getElementById(`playerName${i}`).value.trim();
-                const colorIdx = selectedColorIndices[i];
-                const color = COLORS[colorIdx];
-
-                gameState.players.push({
-                    id: i,
-                    name: name,
-                    color: color,
-                    x: Math.random() * 200 + 50,
-                    y: Math.random() * 100 + 50,
-                    lives: 2,
-                    eliminated: false,
-                    inO: true
-                });
+            if (gameState.players.length === 0) {
+                alert('최소 1명 이상의 플레이어가 필요합니다!');
+                return;
             }
 
             gameState.currentQuizIndex = 0;
             gameState.gameActive = true;
+            gameState.waiting = false;
+
+            // 플레이어 초기화
+            gameState.players.forEach(player => {
+                player.lives = 2;
+                player.eliminated = false;
+                player.inO = Math.random() > 0.5;
+            });
 
             document.getElementById('selectionScreen').style.display = 'none';
             document.getElementById('gameScreen').style.display = 'block';
@@ -569,20 +624,27 @@
             const oArea = document.getElementById('oArea');
             const xArea = document.getElementById('xArea');
 
+            // 기존 플레이어 요소 제거
+            oArea.querySelectorAll('.player').forEach(p => p.remove());
+            xArea.querySelectorAll('.player').forEach(p => p.remove());
+
             gameState.players.forEach(player => {
                 const playerEl = document.createElement('div');
                 playerEl.className = 'player';
                 playerEl.id = `player${player.id}`;
-                playerEl.style.backgroundColor = player.color.hex;
-                playerEl.textContent = player.name.charAt(0).toUpperCase();
+                playerEl.style.backgroundColor = player.color;
+                playerEl.textContent = player.emoji;
                 playerEl.dataset.playerId = player.id;
 
-                if (Math.random() > 0.5) {
-                    xArea.appendChild(playerEl);
-                    player.inO = false;
-                } else {
+                const nameLabel = document.createElement('div');
+                nameLabel.className = 'player-name';
+                nameLabel.textContent = player.name;
+                playerEl.appendChild(nameLabel);
+
+                if (player.inO) {
                     oArea.appendChild(playerEl);
-                    player.inO = true;
+                } else {
+                    xArea.appendChild(playerEl);
                 }
 
                 updatePlayerPosition(player, playerEl);
@@ -595,13 +657,12 @@
         function updatePlayerPosition(player, element) {
             const area = document.getElementById(player.inO ? 'oArea' : 'xArea');
             const rect = area.getBoundingClientRect();
-            const containerRect = document.querySelector('.container').getBoundingClientRect();
 
             let x = player.x;
             let y = player.y;
 
-            if (x + 40 > rect.width) x = rect.width - 40;
-            if (y + 40 > rect.height) y = rect.height - 40;
+            if (x + 50 > rect.width) x = rect.width - 50;
+            if (y + 50 > rect.height) y = rect.height - 50;
             if (x < 0) x = 0;
             if (y < 0) y = 0;
 
@@ -630,7 +691,6 @@
                 if (!gameState.gameActive || player.eliminated) return;
                 
                 const touch = e.touches[0];
-                const rect = element.getBoundingClientRect();
                 element.dataset.startX = touch.clientX;
                 element.dataset.startY = touch.clientY;
             });
@@ -746,7 +806,7 @@
                 
                 return `
                     <div class="player-status-item ${statusClass}">
-                        <div class="status-color" style="background: ${player.color.hex}"></div>
+                        <div class="status-color" style="background: ${player.color}"></div>
                         <div class="status-info">
                             <div class="status-name">${player.name}</div>
                             <div class="status-lives">${player.eliminated ? '탈락' : hearts}</div>
@@ -768,11 +828,11 @@
             let content = '';
             if (survivors.length === 1) {
                 const winner = survivors[0];
-                content = `<div class="winner">🏆 ${winner.name} 우승! 🏆</div>`;
+                content = `<div class="winner">${winner.emoji} ${winner.name} 우승! ${winner.emoji}</div>`;
             } else if (survivors.length === 0) {
                 content = `<div class="winner">🎲 모두 탈락! 다시 도전하세요! 🎲</div>`;
             } else {
-                content = `<div class="winner">🏆 ${survivors.map(p => p.name).join(', ')} 우승! 🏆</div>`;
+                content = `<div class="winner">🏆 ${survivors.map(p => `${p.emoji} ${p.name}`).join(', ')} 우승! 🏆</div>`;
             }
 
             document.getElementById('gameOverContent').innerHTML = content;
