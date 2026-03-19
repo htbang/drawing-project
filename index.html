@@ -105,6 +105,7 @@
         .players-list {
             max-height: 300px;
             overflow-y: auto;
+            margin-bottom: 20px;
         }
 
         .player-item {
@@ -116,6 +117,13 @@
             align-items: center;
             gap: 10px;
             border: 2px solid #ddd;
+            justify-content: space-between;
+        }
+
+        .player-item-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .player-item-emoji {
@@ -127,25 +135,37 @@
             color: #333;
         }
 
-        .start-button {
-            background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
+        .ready-badge {
+            background: #51cf66;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 5px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .ready-button {
+            background: linear-gradient(135deg, #4c6ef5 0%, #667eea 100%);
             color: white;
             border: none;
-            padding: 15px 40px;
-            font-size: 1.2em;
-            border-radius: 10px;
+            padding: 12px 30px;
+            font-size: 1.1em;
+            border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s;
-            margin-top: 20px;
             width: 100%;
         }
 
-        .start-button:hover:not(:disabled) {
-            transform: translateY(-3px);
+        .ready-button:hover:not(:disabled) {
+            transform: translateY(-2px);
             box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
         }
 
-        .start-button:disabled {
+        .ready-button.ready {
+            background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
+        }
+
+        .ready-button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
@@ -188,10 +208,23 @@
             display: inline-block;
             background: #ff6b6b;
             color: white;
-            padding: 5px 15px;
+            padding: 8px 16px;
             border-radius: 20px;
-            font-size: 1.1em;
+            font-size: 1.2em;
             margin-top: 10px;
+            font-weight: bold;
+            min-width: 80px;
+            transition: all 0.1s;
+        }
+
+        .quiz-timer.urgent {
+            background: #ff4757;
+            animation: pulse 0.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
         }
 
         .game-board-container {
@@ -211,6 +244,13 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .answer-area:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
         }
 
         .answer-area.o-area {
@@ -250,10 +290,8 @@
             font-weight: bold;
             color: white;
             text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
-            cursor: move;
             user-select: none;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-            transition: all 0.1s;
             animation: float 3s ease-in-out infinite;
         }
 
@@ -264,7 +302,6 @@
 
         .player:hover {
             box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-            transform: scale(1.1);
         }
 
         .player-name {
@@ -326,10 +363,6 @@
             font-size: 0.9em;
         }
 
-        .status-lives .heart {
-            color: #ff6b6b;
-        }
-
         .status-eliminated {
             background: #f0f0f0;
             opacity: 0.6;
@@ -340,6 +373,36 @@
             color: #999;
         }
 
+        /* 보너스 라운드 */
+        .bonus-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 3em;
+            color: #ffd700;
+            text-align: center;
+            animation: bonusAnimation 2s ease-in-out forwards;
+        }
+
+        .bonus-overlay.show {
+            display: flex;
+        }
+
+        @keyframes bonusAnimation {
+            0% { opacity: 0; transform: scale(0.5); }
+            50% { opacity: 1; transform: scale(1.2); }
+            100% { opacity: 0; transform: scale(0.5); }
+        }
+
+        /* 게임 오버 화면 */
         .game-over-screen {
             display: none;
             background: white;
@@ -412,9 +475,9 @@
             }
 
             .player {
-                width: 35px;
-                height: 35px;
-                font-size: 1em;
+                width: 45px;
+                height: 45px;
+                font-size: 1.5em;
             }
         }
     </style>
@@ -435,7 +498,7 @@
                 <div class="player-count">접속 인원: <span id="playerCountDisplay">0</span>명</div>
                 <h3>대기 중인 플레이어</h3>
                 <div class="players-list" id="playersList"></div>
-                <button class="start-button" id="startButton" disabled>게임 시작</button>
+                <button class="ready-button" id="readyButton" disabled>준비 완료</button>
             </div>
         </div>
 
@@ -459,9 +522,14 @@
             </div>
 
             <div class="controls-info">
-                🖱️ 마우스/터치로 이동하거나<br>
-                ⌨️ 화살표 키 또는 WASD로 조종하세요
+                👆 답변 영역을 클릭하여 이동하세요
             </div>
+        </div>
+
+        <!-- 보너스 라운드 -->
+        <div class="bonus-overlay" id="bonusOverlay">
+            <div>🎊 보너스 라운드! 🎊</div>
+            <div style="font-size: 1.2em; margin-top: 20px;">모두 다시 시작합니다!</div>
         </div>
 
         <!-- 게임 오버 화면 -->
@@ -475,7 +543,6 @@
     <script>
         // 게임 설정
         const CHARACTER_EMOJIS = ['🐱', '🐶', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵'];
-        
         const CHARACTER_COLORS = [
             '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
             '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B88B', '#ABEBC6',
@@ -500,8 +567,9 @@
             players: [],
             currentQuizIndex: 0,
             gameActive: false,
-            waiting: true
         };
+
+        let animationFrameId = null;
 
         // 초기화
         function init() {
@@ -509,9 +577,10 @@
             document.getElementById('playerNameInput').addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') enterGame();
             });
-            document.getElementById('startButton').addEventListener('click', startGame);
+            document.getElementById('readyButton').addEventListener('click', toggleReady);
             document.getElementById('restartButton').addEventListener('click', () => location.reload());
             
+            setInterval(syncGameState, 300);
             loadPlayersFromStorage();
         }
 
@@ -531,6 +600,21 @@
         // 로컬스토리지에 플레이어 저장
         function savePlayersToStorage() {
             localStorage.setItem('quizGamePlayers', JSON.stringify(gameState.players));
+        }
+
+        // 게임 상태 동기화
+        function syncGameState() {
+            const stored = localStorage.getItem('quizGameState');
+            if (stored) {
+                try {
+                    const state = JSON.parse(stored);
+                    if (state.startGame && !gameState.gameActive) {
+                        gameState.gameActive = true;
+                        gameState.currentQuizIndex = 0;
+                        startGameNow();
+                    }
+                } catch (e) {}
+            }
         }
 
         // 게임 입장
@@ -560,7 +644,10 @@
                 y: Math.random() * 100 + 50,
                 lives: 2,
                 eliminated: false,
-                inO: true
+                inO: true,
+                ready: false,
+                targetX: null,
+                targetY: null
             };
 
             gameState.players.push(player);
@@ -575,42 +662,77 @@
         function updatePlayersList() {
             const playersList = document.getElementById('playersList');
             const playerCountDisplay = document.getElementById('playerCountDisplay');
-            const startButton = document.getElementById('startButton');
+            const readyButton = document.getElementById('readyButton');
 
             playerCountDisplay.textContent = gameState.players.length;
 
             if (gameState.players.length === 0) {
                 playersList.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">입장한 플레이어가 없습니다.</p>';
-                startButton.disabled = true;
+                readyButton.disabled = true;
                 return;
             }
 
             playersList.innerHTML = gameState.players.map(player => `
                 <div class="player-item">
-                    <div class="player-item-emoji">${player.emoji}</div>
-                    <div class="player-item-name">${player.name}</div>
+                    <div class="player-item-left">
+                        <div class="player-item-emoji">${player.emoji}</div>
+                        <div class="player-item-name">${player.name}</div>
+                    </div>
+                    ${player.ready ? '<div class="ready-badge">✓ Ready</div>' : ''}
                 </div>
             `).join('');
 
-            startButton.disabled = gameState.players.length < 1;
+            readyButton.disabled = false;
+            updateReadyButton();
+            
+            const allReady = gameState.players.every(p => p.ready);
+            if (allReady && gameState.players.length > 0) {
+                localStorage.setItem('quizGameState', JSON.stringify({ startGame: true }));
+            }
         }
 
-        // 게임 시작
-        function startGame() {
-            if (gameState.players.length === 0) {
-                alert('최소 1명 이상의 플레이어가 필요합니다!');
-                return;
+        function updateReadyButton() {
+            const myName = localStorage.getItem('myPlayerName');
+            const myPlayer = gameState.players.find(p => p.name === myName);
+            const readyButton = document.getElementById('readyButton');
+
+            if (myPlayer && myPlayer.ready) {
+                readyButton.textContent = '준비 취소';
+                readyButton.classList.add('ready');
+            } else {
+                readyButton.textContent = '준비 완료';
+                readyButton.classList.remove('ready');
+            }
+        }
+
+        // Ready 토글
+        function toggleReady() {
+            let myName = localStorage.getItem('myPlayerName');
+            let myPlayer = gameState.players.find(p => p.name === myName);
+
+            if (!myPlayer && gameState.players.length > 0) {
+                myName = gameState.players[0].name;
+                localStorage.setItem('myPlayerName', myName);
+                myPlayer = gameState.players[0];
             }
 
+            if (myPlayer) {
+                myPlayer.ready = !myPlayer.ready;
+                savePlayersToStorage();
+                updatePlayersList();
+            }
+        }
+
+        function startGameNow() {
             gameState.currentQuizIndex = 0;
             gameState.gameActive = true;
-            gameState.waiting = false;
 
-            // 플레이어 초기화
             gameState.players.forEach(player => {
                 player.lives = 2;
                 player.eliminated = false;
                 player.inO = Math.random() > 0.5;
+                player.targetX = null;
+                player.targetY = null;
             });
 
             document.getElementById('selectionScreen').style.display = 'none';
@@ -624,7 +746,6 @@
             const oArea = document.getElementById('oArea');
             const xArea = document.getElementById('xArea');
 
-            // 기존 플레이어 요소 제거
             oArea.querySelectorAll('.player').forEach(p => p.remove());
             xArea.querySelectorAll('.player').forEach(p => p.remove());
 
@@ -641,17 +762,63 @@
                 nameLabel.textContent = player.name;
                 playerEl.appendChild(nameLabel);
 
-                if (player.inO) {
-                    oArea.appendChild(playerEl);
-                } else {
-                    xArea.appendChild(playerEl);
-                }
-
+                const area = player.inO ? oArea : xArea;
+                area.appendChild(playerEl);
                 updatePlayerPosition(player, playerEl);
-                setupPlayerControls(player, playerEl);
             });
 
+            document.getElementById('oArea').addEventListener('click', (e) => moveTowards(e, true));
+            document.getElementById('xArea').addEventListener('click', (e) => moveTowards(e, false));
+
             updatePlayersStatus();
+            startAnimationLoop();
+        }
+
+        function moveTowards(event, isO) {
+            const area = event.target.closest('.answer-area');
+            if (!area) return;
+
+            const rect = area.getBoundingClientRect();
+            const clickX = event.clientX - rect.left;
+            const clickY = event.clientY - rect.top;
+
+            gameState.players.forEach(player => {
+                if (!player.eliminated && gameState.gameActive) {
+                    player.targetX = Math.max(0, Math.min(clickX - 25, rect.width - 50));
+                    player.targetY = Math.max(0, Math.min(clickY - 25, rect.height - 50));
+                }
+            });
+        }
+
+        function startAnimationLoop() {
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+
+            const animate = () => {
+                gameState.players.forEach(player => {
+                    if (player.targetX !== null && player.targetY !== null) {
+                        const dx = player.targetX - player.x;
+                        const dy = player.targetY - player.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+
+                        if (distance > 2) {
+                            const speed = 3;
+                            player.x += (dx / distance) * speed;
+                            player.y += (dy / distance) * speed;
+
+                            const element = document.getElementById(`player${player.id}`);
+                            if (element) {
+                                updatePlayerPosition(player, element);
+                            }
+                        }
+                    }
+                });
+
+                if (gameState.gameActive) {
+                    animationFrameId = requestAnimationFrame(animate);
+                }
+            };
+
+            animationFrameId = requestAnimationFrame(animate);
         }
 
         function updatePlayerPosition(player, element) {
@@ -661,87 +828,14 @@
             let x = player.x;
             let y = player.y;
 
-            if (x + 50 > rect.width) x = rect.width - 50;
-            if (y + 50 > rect.height) y = rect.height - 50;
-            if (x < 0) x = 0;
-            if (y < 0) y = 0;
+            x = Math.max(0, Math.min(x, rect.width - 50));
+            y = Math.max(0, Math.min(y, rect.height - 50));
 
             player.x = x;
             player.y = y;
 
             element.style.left = x + 'px';
             element.style.top = y + 'px';
-        }
-
-        function setupPlayerControls(player, element) {
-            let keys = {};
-
-            document.addEventListener('keydown', (e) => {
-                if (!gameState.gameActive || player.eliminated) return;
-                
-                keys[e.key.toLowerCase()] = true;
-                handleMovement(player, element, keys);
-            });
-
-            document.addEventListener('keyup', (e) => {
-                keys[e.key.toLowerCase()] = false;
-            });
-
-            element.addEventListener('touchstart', (e) => {
-                if (!gameState.gameActive || player.eliminated) return;
-                
-                const touch = e.touches[0];
-                element.dataset.startX = touch.clientX;
-                element.dataset.startY = touch.clientY;
-            });
-
-            element.addEventListener('touchmove', (e) => {
-                if (!gameState.gameActive || player.eliminated) return;
-                
-                const touch = e.touches[0];
-                const startX = parseFloat(element.dataset.startX) || touch.clientX;
-                const startY = parseFloat(element.dataset.startY) || touch.clientY;
-
-                const diffX = touch.clientX - startX;
-                const diffY = touch.clientY - startY;
-
-                if (Math.abs(diffX) > 5) {
-                    player.x += diffX > 0 ? 5 : -5;
-                }
-                if (Math.abs(diffY) > 5) {
-                    player.y += diffY > 0 ? 5 : -5;
-                }
-
-                updatePlayerPosition(player, element);
-                element.dataset.startX = touch.clientX;
-                element.dataset.startY = touch.clientY;
-            });
-        }
-
-        function handleMovement(player, element, keys) {
-            const speed = 5;
-            let moved = false;
-
-            if (keys['arrowup'] || keys['w']) {
-                player.y = Math.max(0, player.y - speed);
-                moved = true;
-            }
-            if (keys['arrowdown'] || keys['s']) {
-                player.y += speed;
-                moved = true;
-            }
-            if (keys['arrowleft'] || keys['a']) {
-                player.x = Math.max(0, player.x - speed);
-                moved = true;
-            }
-            if (keys['arrowright'] || keys['d']) {
-                player.x += speed;
-                moved = true;
-            }
-
-            if (moved) {
-                updatePlayerPosition(player, element);
-            }
         }
 
         function nextQuiz() {
@@ -755,17 +849,44 @@
             document.getElementById('quizQuestion').textContent = quiz.q;
 
             let timeLeft = 15;
-            document.getElementById('quizTimer').textContent = timeLeft + '초';
+            const timerEl = document.getElementById('quizTimer');
+            timerEl.textContent = timeLeft + '초';
+            timerEl.classList.remove('urgent');
 
             const timer = setInterval(() => {
                 timeLeft--;
-                document.getElementById('quizTimer').textContent = timeLeft + '초';
+                timerEl.textContent = timeLeft + '초';
+
+                if (timeLeft <= 3) {
+                    timerEl.classList.add('urgent');
+                    if (timeLeft === 3 || timeLeft === 2 || timeLeft === 1) {
+                        playBeep();
+                    }
+                }
 
                 if (timeLeft <= 0) {
                     clearInterval(timer);
                     checkAnswers(quiz.a);
                 }
             }, 1000);
+        }
+
+        function playBeep() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.frequency.value = 800;
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.1);
+            } catch (e) {}
         }
 
         function checkAnswers(correctAnswer) {
@@ -776,8 +897,7 @@
                 if (player.eliminated) return;
 
                 const isInOArea = oArea.contains(document.getElementById(`player${player.id}`));
-                const playerAnswer = isInOArea;
-                const isCorrect = playerAnswer === correctAnswer;
+                const isCorrect = isInOArea === correctAnswer;
 
                 if (!isCorrect) {
                     player.lives--;
@@ -791,7 +911,9 @@
             updatePlayersStatus();
 
             const activePlayers = gameState.players.filter(p => !p.eliminated);
-            if (activePlayers.length <= 1) {
+            if (activePlayers.length === 0 && gameState.currentQuizIndex < QUIZZES.length - 1) {
+                showBonusRound();
+            } else if (activePlayers.length <= 1) {
                 endGame();
             } else {
                 gameState.currentQuizIndex++;
@@ -799,9 +921,25 @@
             }
         }
 
+        function showBonusRound() {
+            const bonusOverlay = document.getElementById('bonusOverlay');
+            bonusOverlay.classList.add('show');
+
+            gameState.players.forEach(player => {
+                player.lives = 2;
+                player.eliminated = false;
+            });
+
+            setTimeout(() => {
+                bonusOverlay.classList.remove('show');
+                gameState.currentQuizIndex++;
+                nextQuiz();
+            }, 2000);
+        }
+
         function updatePlayersStatus() {
             const statusHTML = gameState.players.map(player => {
-                const hearts = '❤️'.repeat(player.lives);
+                const hearts = '❤️'.repeat(Math.max(0, player.lives));
                 const statusClass = player.eliminated ? 'status-eliminated' : '';
                 
                 return `
@@ -820,6 +958,8 @@
 
         function endGame() {
             gameState.gameActive = false;
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+
             document.getElementById('gameScreen').style.display = 'none';
             document.getElementById('gameOverScreen').style.display = 'block';
 
@@ -838,7 +978,6 @@
             document.getElementById('gameOverContent').innerHTML = content;
         }
 
-        // 게임 시작
         init();
     </script>
 </body>
