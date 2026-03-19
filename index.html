@@ -730,6 +730,19 @@
             // 다른 탭/기기에서 변경사항 감지
             window.addEventListener('storage', handleStorageChange);
             
+            // 페이지 닫거나 새로고침 시 자신의 플레이어 삭제
+            window.addEventListener('beforeunload', () => {
+                const myName = sessionStorage.getItem(`myPlayerName_${sessionId}`);
+                if (myName) {
+                    const index = gameState.players.findIndex(p => p.name === myName);
+                    if (index >= 0) {
+                        gameState.players.splice(index, 1);
+                        savePlayersToStorage();
+                    }
+                    sessionStorage.removeItem(`myPlayerName_${sessionId}`);
+                }
+            });
+            
             setInterval(syncGameState, 300);
             setInterval(loadPlayersFromStorage, 500); // 주기적으로 플레이어 목록 동기화
             loadPlayersFromStorage();
@@ -773,12 +786,12 @@
 
         // 플레이어 삭제
         function deletePlayer() {
-            const myName = localStorage.getItem(`myPlayerName_${sessionId}`);
+            const myName = sessionStorage.getItem(`myPlayerName_${sessionId}`);
             const index = gameState.players.findIndex(p => p.name === myName);
             
             if (index >= 0) {
                 gameState.players.splice(index, 1);
-                localStorage.removeItem(`myPlayerName_${sessionId}`);
+                sessionStorage.removeItem(`myPlayerName_${sessionId}`);
                 savePlayersToStorage();
                 updatePlayersList();
                 
@@ -838,7 +851,7 @@
             };
 
             gameState.players.push(player);
-            localStorage.setItem(`myPlayerName_${sessionId}`, name);
+            sessionStorage.setItem(`myPlayerName_${sessionId}`, name);
             savePlayersToStorage();
             updatePlayersList();
 
@@ -851,7 +864,7 @@
             const playersList = document.getElementById('playersList');
             const playerCountDisplay = document.getElementById('playerCountDisplay');
             const readyButton = document.getElementById('readyButton');
-            const myName = localStorage.getItem(`myPlayerName_${sessionId}`);
+            const myName = sessionStorage.getItem(`myPlayerName_${sessionId}`);
 
             playerCountDisplay.textContent = gameState.players.length;
 
@@ -895,7 +908,7 @@
         }
 
         function updateReadyButton() {
-            const myName = localStorage.getItem(`myPlayerName_${sessionId}`);
+            const myName = sessionStorage.getItem(`myPlayerName_${sessionId}`);
             const myPlayer = gameState.players.find(p => p.name === myName);
             const readyButton = document.getElementById('readyButton');
 
@@ -910,12 +923,12 @@
 
         // Ready 토글
         function toggleReady() {
-            let myName = localStorage.getItem(`myPlayerName_${sessionId}`);
+            let myName = sessionStorage.getItem(`myPlayerName_${sessionId}`);
             let myPlayer = gameState.players.find(p => p.name === myName);
 
             if (!myPlayer && gameState.players.length > 0) {
                 myName = gameState.players[0].name;
-                localStorage.setItem(`myPlayerName_${sessionId}`, myName);
+                sessionStorage.setItem(`myPlayerName_${sessionId}`, myName);
                 myPlayer = gameState.players[0];
             }
 
@@ -986,7 +999,7 @@
         function setupKeyboardMovement() {
             document.addEventListener('keydown', (e) => {
                 if (!gameState.gameActive) return;
-                const myName = localStorage.getItem(`myPlayerName_${sessionId}`);
+                const myName = sessionStorage.getItem(`myPlayerName_${sessionId}`);
                 const myPlayer = gameState.players.find(p => p.name === myName);
                 
                 if (!myPlayer || myPlayer.eliminated) return;
