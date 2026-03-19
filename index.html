@@ -712,13 +712,9 @@
         let timerInterval = null;
         let sessionId = null;
 
-        // 세션 ID 생성 및 관리
+        // 세션 ID 생성 및 관리 (모든 탭/기기가 같은 sessionId 공유)
         function initSession() {
-            sessionId = sessionStorage.getItem('quizGameSessionId');
-            if (!sessionId) {
-                sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                sessionStorage.setItem('quizGameSessionId', sessionId);
-            }
+            sessionId = 'quizGame';
         }
 
         // 초기화
@@ -758,6 +754,15 @@
                 try {
                     gameState.players = JSON.parse(stored);
                     updatePlayersList();
+                    
+                    // 모두 준비되었는지 확인하고 자동 시작
+                    const allReady = gameState.players.every(p => p.ready);
+                    if (allReady && gameState.players.length > 0 && !gameState.gameActive) {
+                        setTimeout(() => {
+                            const stateKey = `quizGameState_${sessionId}`;
+                            localStorage.setItem(stateKey, JSON.stringify({ startGame: true }));
+                        }, 100);
+                    }
                 } catch (e) {
                     gameState.players = [];
                 }
