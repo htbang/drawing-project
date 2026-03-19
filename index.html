@@ -735,8 +735,19 @@
             document.getElementById('stopButton').addEventListener('click', stopGame);
             document.getElementById('restartButton').addEventListener('click', () => location.reload());
             
+            // 다른 탭/기기에서 변경사항 감지
+            window.addEventListener('storage', handleStorageChange);
+            
             setInterval(syncGameState, 300);
+            setInterval(loadPlayersFromStorage, 500); // 주기적으로 플레이어 목록 동기화
             loadPlayersFromStorage();
+        }
+
+        // localStorage 변경 감지 (다른 탭/기기)
+        function handleStorageChange(e) {
+            if (e.key && e.key.startsWith(`quizGamePlayers_${sessionId}`)) {
+                loadPlayersFromStorage();
+            }
         }
 
         // 로컬스토리지에서 플레이어 로드
