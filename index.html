@@ -1,106 +1,1395 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>O/X 상식퀴즈</title>
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0;}
-    body{font-family:Arial,sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px;}
-    .card{width:100%;max-width:760px;background:#fff;border-radius:16px;box-shadow:0 12px 30px rgba(0,0,0,.2);padding:20px;}
-    h1{text-align:center;color:#222;margin-bottom:8px;font-size:2rem;}
-    .subtitle{text-align:center;color:#666;margin-bottom:18px;}
-    input, button{font-size:1rem;padding:12px;border-radius:8px;border:1px solid #ccc;}
-    input{width:100%;margin-bottom:12px;}
-    button{width:100%;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;cursor:pointer;}
-    button:disabled{opacity:.5;cursor:not-allowed;}
-    .list{background:#f7f7f7;padding:10px;border-radius:10px;max-height:180px;overflow:auto;margin-top:12px;}
-    .item{margin:6px 0;padding:8px;background:#fff;border-radius:8px;border:1px solid #ddd;display:flex;justify-content:space-between;}
-    .game-screen{display:none;}
-    .active{display:block;}
-    .controls{display:flex;gap:8px;margin-top:12px;}
-    .controls button{flex:1;background:#ff6b6b;}
-    .controls button.ok{background:#51cf66;}
-    .pause{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:1000;visibility:hidden;opacity:0;transition:all .2s;}
-    .pause.show{visibility:visible;opacity:1;}
-    .pausebox{background:#fff;padding:30px;border-radius:12px;text-align:center;}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>O/X 상식퀴즈 게임</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+        }
+
+        /* 플레이어 입장 화면 */
+        .selection-screen {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        .selection-screen h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .selection-screen .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1em;
+        }
+
+        .entry-form {
+            margin-bottom: 30px;
+        }
+
+        .player-name-input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+
+        .player-name-input:focus {
+            outline: none;
+            border-color: #764ba2;
+            box-shadow: 0 0 10px rgba(118, 75, 162, 0.3);
+        }
+
+        .entry-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.1em;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        .entry-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .entry-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .waiting-area {
+            background: #f9f9f9;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+
+        .waiting-area h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .players-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .player-item {
+            background: white;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 2px solid #ddd;
+            justify-content: space-between;
+        }
+
+        .player-item-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .player-item-emoji {
+            font-size: 1.5em;
+        }
+
+        .player-item-name {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .ready-badge {
+            background: #51cf66;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 5px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .ready-button {
+            background: linear-gradient(135deg, #4c6ef5 0%, #667eea 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.1em;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        .ready-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .ready-button.ready {
+            background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
+        }
+
+        .ready-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .player-count {
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 15px;
+        }
+
+        /* 게임 화면 */
+        .game-screen {
+            display: none;
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+
+        .game-header button {
+            padding: 8px 16px;
+            font-size: 0.9em;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .pause-button {
+            background: #ffa500;
+            color: white;
+        }
+
+        .pause-button:hover {
+            background: #ff8c00;
+            transform: translateY(-2px);
+        }
+
+        .stop-button {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .stop-button:hover {
+            background: #ff5252;
+            transform: translateY(-2px);
+        }
+
+        .quiz-area {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        .quiz-number {
+            color: #667eea;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+
+        .quiz-question {
+            font-size: 1.5em;
+            color: #333;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+
+        .quiz-timer {
+            display: inline-block;
+            background: #ff6b6b;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 1.2em;
+            margin-top: 10px;
+            font-weight: bold;
+            min-width: 80px;
+            transition: all 0.1s;
+        }
+
+        .quiz-timer.urgent {
+            background: #ff4757;
+            animation: pulse 0.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .game-board-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .game-board-container.vertical {
+            grid-template-columns: 1fr;
+        }
+
+        .answer-area {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            position: relative;
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .answer-area:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .answer-area.o-area {
+            border: 4px solid #51cf66;
+        }
+
+        .answer-area.x-area {
+            border: 4px solid #ff6b6b;
+        }
+
+        .answer-label {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .answer-area.o-area .answer-label {
+            color: #51cf66;
+        }
+
+        .answer-area.x-area .answer-label {
+            color: #ff6b6b;
+        }
+
+        .player {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8em;
+            border: 3px solid rgba(255, 255, 255, 0.8);
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+            user-select: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .player:hover {
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .player-name {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-size: 0.7em;
+            white-space: nowrap;
+            font-weight: bold;
+            border: 1px solid white;
+        }
+
+        .players-status {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+        }
+
+        .players-status h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .player-status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+
+        .status-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .status-info {
+            flex: 1;
+        }
+
+        .status-name {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .status-lives {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .status-eliminated {
+            background: #f0f0f0;
+            opacity: 0.6;
+        }
+
+        .status-eliminated .status-name {
+            text-decoration: line-through;
+            color: #999;
+        }
+
+        /* 일시정지 모달 */
+        .pause-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pause-modal.show {
+            display: flex;
+        }
+
+        .pause-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+        }
+
+        .pause-content h2 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+
+        .pause-content p {
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+        }
+
+        .pause-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .resume-button {
+            background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1em;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .resume-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .quiz-area.paused {
+            filter: blur(8px);
+            pointer-events: none;
+        }
+
+        /* 보너스 라운드 */
+        .bonus-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 3em;
+            color: #ffd700;
+            text-align: center;
+            animation: bonusAnimation 2s ease-in-out forwards;
+        }
+
+        .bonus-overlay.show {
+            display: flex;
+        }
+
+        @keyframes bonusAnimation {
+            0% { opacity: 0; transform: scale(0.5); }
+            50% { opacity: 1; transform: scale(1.2); }
+            100% { opacity: 0; transform: scale(0.5); }
+        }
+
+        /* 게임 오버 화면 */
+        .game-over-screen {
+            display: none;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .game-over-screen h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+
+        .winner {
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 1.5em;
+            margin: 20px 0;
+        }
+
+        .restart-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2em;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+
+        .restart-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .controls-info {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 600px) {
+            .selection-screen {
+                padding: 20px;
+            }
+
+            .selection-screen h1 {
+                font-size: 1.5em;
+            }
+
+            .quiz-question {
+                font-size: 1.2em;
+            }
+
+            .game-board-container {
+                grid-template-columns: 1fr;
+            }
+
+            .answer-area {
+                min-height: 200px;
+            }
+
+            .player {
+                width: 45px;
+                height: 45px;
+                font-size: 1.5em;
+            }
+
+            .game-header {
+                flex-wrap: wrap;
+            }
+
+            .pause-content {
+                padding: 30px 20px;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div class="card" id="lobby">
-    <h1>O/X 상식퀴즈 게임</h1>
-    <p class="subtitle">이름 입력 후 입장, 모두 준비 시 시작</p>
-    <input id="name" placeholder="이름" maxlength="12" />
-    <button id="enterBtn">입장하기</button>
-    <div class="list" id="players"></div>
-    <button id="readyBtn" disabled>준비 완료</button>
-  </div>
+    <div class="container">
+        <!-- 플레이어 입장 화면 -->
+        <div class="selection-screen" id="selectionScreen">
+            <h1>🎮 O/X 상식퀴즈 게임</h1>
+            <p class="subtitle">게임에 참여하려면 이름을 입력하세요!</p>
+            
+            <div class="entry-form">
+                <input type="text" id="playerNameInput" class="player-name-input" placeholder="플레이어 이름을 입력하세요" maxlength="15">
+                <button class="entry-button" id="entryButton">입장하기</button>
+            </div>
 
-  <div class="card game-screen" id="game">
-    <h1>퀴즈 진행중</h1>
-    <div id="qIdx">문제 1/1</div>
-    <div id="qText" style="margin:10px 0;font-size:1.35rem;color:#333;">준비 중...</div>
-    <div id="timer" style="margin-bottom:12px;font-weight:bold;">15초</div>
-    <div class="controls">
-      <button class="ok" id="oBtn">O</button>
-      <button id="xBtn">X</button>
+            <div class="waiting-area">
+                <div class="player-count">접속 인원: <span id="playerCountDisplay">0</span>명</div>
+                <h3>대기 중인 플레이어</h3>
+                <div class="players-list" id="playersList"></div>
+                <button class="ready-button" id="readyButton" disabled>준비 완료</button>
+            </div>
+        </div>
+
+        <!-- 게임 화면 -->
+        <div class="game-screen" id="gameScreen">
+            <div class="game-header">
+                <div>🎮 게임 진행 중</div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="pause-button" id="pauseButton">⏸ 일시정지</button>
+                    <button class="stop-button" id="stopButton">⏹ 게임중지</button>
+                </div>
+            </div>
+
+            <div class="quiz-area" id="quizArea">
+                <div class="quiz-number" id="quizNumber">문제 1/10</div>
+                <div class="quiz-question" id="quizQuestion">문제가 로드 중입니다...</div>
+                <div class="quiz-timer" id="quizTimer">15초</div>
+            </div>
+
+            <div class="players-status" id="playersStatus"></div>
+
+            <div class="game-board-container" id="gameBoardContainer">
+                <div class="answer-area o-area" id="oArea">
+                    <div class="answer-label">O(참)</div>
+                </div>
+                <div class="answer-area x-area" id="xArea">
+                    <div class="answer-label">X(거짓)</div>
+                </div>
+            </div>
+
+            <div class="controls-info">
+                👆 답변 영역을 클릭하여 이동하세요
+            </div>
+        </div>
+
+        <!-- 일시정지 모달 -->
+        <div class="pause-modal" id="pauseModal">
+            <div class="pause-content">
+                <h2>⏸ 일시정지</h2>
+                <p>좌우 키로만 이동할 수 있습니다</p>
+                <div class="pause-buttons">
+                    <button class="resume-button" id="resumeButton">게임 재개</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 보너스 라운드 -->
+        <div class="bonus-overlay" id="bonusOverlay">
+            <div>🎊 보너스 타임! 🎊</div>
+            <div style="font-size: 1.5em; margin-top: 20px;">한 목숨씩 더 드릴게요!</div>
+        </div>
+
+        <!-- 게임 오버 화면 -->
+        <div class="game-over-screen" id="gameOverScreen">
+            <h2>게임 종료!</h2>
+            <div id="gameOverContent"></div>
+            <div id="rankingList" style="margin: 20px 0; padding: 20px; background: #f9f9f9; border-radius: 10px; text-align: left;"></div>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button class="restart-button" id="restartButton">다시 선택</button>
+                <button class="restart-button" id="endGameButton" style="background: #ff6b6b;">게임종료</button>
+            </div>
+        </div>
     </div>
-    <div style="margin-top:12px;background:#f7f7f7;padding:10px;border-radius:8px;" id="status"></div>
-    <div class="controls" style="margin-top:8px;">
-      <button id="pauseBtn" style="background:#ffa500;">일시정지</button>
-      <button id="stopBtn" style="background:#ff6b6b;">중단</button>
-    </div>
-  </div>
 
-  <div class="pause" id="pauseModal"><div class="pausebox"><h2>일시정지됨</h2><button id="resumeBtn" style="background:#51cf66;width:100%;">재개</button></div></div>
+    <script>
+        // 게임 설정
+        const CHARACTER_EMOJIS = ['🐱', '🐶', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵'];
+        const CHARACTER_COLORS = [
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
+            '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B88B', '#ABEBC6',
+            '#F1948A', '#AED6F1', '#F5B041', '#D7BDE2', '#A9DFBF'
+        ];
 
-  <div class="card" id="end" style="display:none;"><h1>게임 종료</h1><div id="result"></div><button id="restartBtn" style="margin-top:12px;">다시하기</button></div>
+        const QUIZZES = [
+            { q: '서울은 한국의 수도이다.', a: true },
+            { q: '지구는 태양 주위를 돈다.', a: true },
+            { q: '고양이는 초식동물이다.', a: false },
+            { q: '1+1은 2이다.', a: true },
+            { q: '펭귄은 날 수 있는 새이다.', a: false },
+            { q: '물은 화학식으로 H2O이다.', a: true },
+            { q: '금은 은보다 무겁다.', a: true },
+            { q: '뱀은 다리가 있다.', a: false },
+            { q: '달은 지구의 위성이다.', a: true },
+            { q: '염소는 노란색이다.', a: false }
+        ];
 
-  <script>
-    const KEY_P = 'quiz_players';
-    const KEY_S = 'quiz_state';
-    const QUESTIONS = [
-      {q:'지구는 둥글다.', a:true},
-      {q:'고양이는 초식동물이다.', a:false},
-      {q:'물은 H2O이다.', a:true},
-      {q:'1+1=3이다.', a:false},
-      {q:'태양은 지구보다 작다.', a:false}
-    ];
+        // 게임 상태 (localStorage에 저장되어 모든 탭이 공유)
+        let gameState = {
+            players: [],
+            currentQuizIndex: 0,
+            gameActive: false,
+            paused: false,
+            quizStartTime: null, // 문제 시작 시간 (타이머 동기화용)
+            totalQuizTime: 15 // 한 문제 총 시간
+        };
 
-    let state = {players:[],active:false,paused:false,cur:0,sec:15};
-    let timer=null;
+        let animationFrameId = null;
+        let timerInterval = null;
+        let sessionId = null;
+        let tabId = null; // 각 탭마다 고유한 ID
 
-    const $=id=>document.getElementById(id);
-    const render = ()=>{
-      const p = state.players;
-      $('players').innerHTML = p.length ? p.map(x=>`<div class="item"><span>${x.name}</span><span>${x.ready?'준비':'대기'}</span></div>`).join('') : '<div style="text-align:center;color:#999;">플레이어 없음</div>';
-      $('readyBtn').disabled = !p.some(x=>x.name===sessionStorage.getItem('me'));
-      $('readyBtn').textContent = p.find(x=>x.name===sessionStorage.getItem('me'))?.ready ? '준비취소':'준비완료';
-      if(state.active){$('lobby').style.display='none';$('game').classList.add('active');$('end').style.display='none';}
-      else if(state.cur>=QUESTIONS.length || p.filter(x=>!x.elim).length<=1){$('lobby').style.display='none';$('game').classList.remove('active');$('end').style.display='block';$('result').textContent = p.filter(x=>!x.elim)[0]?.name ? `${p.filter(x=>!x.elim)[0].name} 승리!`:'모두 탈락';}
-      else{$('lobby').style.display='block';$('game').classList.remove('active');$('end').style.display='none';}
-      saveState();
-    };
+        // 세션 ID 및 탭 ID 생성
+        function initSession() {
+            sessionId = 'quizGame';
+            // 탭별 고유 ID 생성 (같은 브라우저 창에서도 탭마다 다름)
+            tabId = sessionStorage.getItem('tabId');
+            if (!tabId) {
+                tabId = 'tab_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                sessionStorage.setItem('tabId', tabId);
+            }
+        }
 
-    const saveState = ()=>{localStorage.setItem(KEY_P,JSON.stringify(state.players)); localStorage.setItem(KEY_S,JSON.stringify({active:state.active,cur:state.cur,sec:state.sec,paused:state.paused}));};
-    const loadState = ()=>{try{const a=JSON.parse(localStorage.getItem(KEY_P)); if(a)state.players=a;}catch{} try{const b=JSON.parse(localStorage.getItem(KEY_S)); if(b){state.active=b.active;state.cur=b.cur;state.sec=b.sec;state.paused=b.paused;}}catch{} };
+        // 초기화
+        function init() {
+            initSession();
+            document.getElementById('entryButton').addEventListener('click', enterGame);
+            document.getElementById('playerNameInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') enterGame();
+            });
+            document.getElementById('readyButton').addEventListener('click', toggleReady);
+            document.getElementById('pauseButton').addEventListener('click', pauseGame);
+            document.getElementById('resumeButton').addEventListener('click', resumeGame);
+            document.getElementById('stopButton').addEventListener('click', stopGame);
+            document.getElementById('restartButton').addEventListener('click', () => location.reload());
+            document.getElementById('endGameButton').addEventListener('click', () => {
+                gameState.gameActive = false;
+                gameState.players = [];
+                localStorage.removeItem(`quizGamePlayers_${sessionId}`);
+                location.reload();
+            });
+            
+            // 다른 탭/기기에서 변경사항 감지
+            window.addEventListener('storage', handleStorageChange);
+            
+            // 페이지 닫거나 새로고침 시 자신의 플레이어 삭제
+            window.addEventListener('beforeunload', () => {
+                const myTabId = sessionStorage.getItem('tabId');
+                const index = gameState.players.findIndex(p => p.tabId === myTabId);
+                if (index >= 0) {
+                    gameState.players.splice(index, 1);
+                    savePlayersToStorage();
+                }
+            });
+            
+            setInterval(syncGameState, 100); // 더 자주 동기화 (100ms)
+            setInterval(loadPlayersFromStorage, 500); // 주기적으로 플레이어 목록 동기화
+            loadPlayersFromStorage();
+        }
+        
+        // 게임 상태를 localStorage에서 로드하여 동기화
+        function loadGameStateFromStorage() {
+            const key = `quizGameState_${sessionId}`;
+            const stored = localStorage.getItem(key);
+            if (stored) {
+                try {
+                    const state = JSON.parse(stored);
+                    gameState.currentQuizIndex = state.currentQuizIndex;
+                    gameState.gameActive = state.gameActive;
+                    gameState.paused = state.paused;
+                    gameState.quizStartTime = state.quizStartTime;
+                    gameState.totalQuizTime = state.totalQuizTime;
+                } catch (e) {}
+            }
+        }
+        
+        // 게임 상태를 localStorage에 저장
+        function saveGameStateToStorage() {
+            const key = `quizGameState_${sessionId}`;
+            localStorage.setItem(key, JSON.stringify({
+                currentQuizIndex: gameState.currentQuizIndex,
+                gameActive: gameState.gameActive,
+                paused: gameState.paused,
+                quizStartTime: gameState.quizStartTime,
+                totalQuizTime: gameState.totalQuizTime
+            }));
+        }
+        }
 
-    const startTimer = ()=>{clearInterval(timer); timer=setInterval(()=>{if(state.paused)return;state.sec--; $('timer').textContent=state.sec+'초'; if(state.sec<=0){clearInterval(timer); answer(null);} },1000);};
-    const showQuestion = ()=>{if(state.cur>=QUESTIONS.length){state.active=false;render();return;} $('qIdx').textContent=`문제 ${state.cur+1}/${QUESTIONS.length}`; $('qText').textContent=QUESTIONS[state.cur].q; $('timer').textContent=state.sec+'초'; startTimer(); };
+        // localStorage 변경 감지 (다른 탭/기기)
+        function handleStorageChange(e) {
+            if (e.key && e.key.startsWith(`quizGamePlayers_${sessionId}`)) {
+                loadPlayersFromStorage();
+            }
+        }
 
-    const answer = (v)=>{if(!state.active)return;const right=QUESTIONS[state.cur].a; state.players.forEach(p=>{if(p.elim)return; if(v===null || v!==right){p.lives--; if(p.lives<=0){p.elim=true;}}}); state.cur++; state.sec=15; if(state.cur>=QUESTIONS.length||state.players.filter(p=>!p.elim).length<=1){state.active=false;clearInterval(timer);render();return;} state.paused=false; $('pauseModal').classList.remove('show'); showQuestion();};
+        // 로컬스토리지에서 플레이어 로드
+        function loadPlayersFromStorage() {
+            const key = `quizGamePlayers_${sessionId}`;
+            const stored = localStorage.getItem(key);
+            if (stored) {
+                try {
+                    gameState.players = JSON.parse(stored);
+                    updatePlayersList();
+                    
+                    // 모두 준비되었는지 확인하고 자동 시작
+                    const allReady = gameState.players.every(p => p.ready);
+                    if (allReady && gameState.players.length > 0 && !gameState.gameActive) {
+                        setTimeout(() => {
+                            const stateKey = `quizGameState_${sessionId}`;
+                            localStorage.setItem(stateKey, JSON.stringify({ startGame: true }));
+                        }, 100);
+                    }
+                } catch (e) {
+                    gameState.players = [];
+                }
+            }
+        }
 
-    $('enterBtn').onclick=()=>{const n=$('name').value.trim(); if(!n){alert('이름입력');return;} if(state.players.some(p=>p.name===n)){alert('중복');return;} state.players.push({name:n,ready:false,lives:2,elim:false}); sessionStorage.setItem('me',n); $('name').value=''; render();};
-    $('readyBtn').onclick=()=>{const me=sessionStorage.getItem('me');const p=state.players.find(item=>item.name===me); if(!p)return; p.ready=!p.ready; if(state.players.every(x=>x.ready)) {state.active=true; state.cur=0; state.sec=15; state.players.forEach(p=>{p.elim=false; p.lives=2;}); showQuestion();} render();};
-    $('pauseBtn').onclick=()=>{if(!state.active||state.paused)return;state.paused=true; $('pauseModal').classList.add('show');};
-    $('resumeBtn').onclick=()=>{if(!state.active||!state.paused)return;state.paused=false;$('pauseModal').classList.remove('show');};
-    $('stopBtn').onclick=()=>{state.active=false;clearInterval(timer);render();};
-    $('oBtn').onclick=()=>answer(true);
-    $('xBtn').onclick=()=>answer(false);
-    $('restartBtn').onclick=()=>{state.active=false;state.cur=0;state.sec=15;state.players.forEach(p=>{p.ready=false;p.elim=false;p.lives=2;});render();};
+        // 로컬스토리지에 플레이어 저장
+        function savePlayersToStorage() {
+            const key = `quizGamePlayers_${sessionId}`;
+            localStorage.setItem(key, JSON.stringify(gameState.players));
+        }
 
-    window.addEventListener('storage',()=>{loadState();render();});
-    loadState(); render();
-  </script>
+        // 플레이어 삭제
+        function deletePlayer() {
+            const myTabId = sessionStorage.getItem('tabId');
+            const index = gameState.players.findIndex(p => p.tabId === myTabId);
+            
+            if (index >= 0) {
+                gameState.players.splice(index, 1);
+                savePlayersToStorage();
+                updatePlayersList();
+                
+                // 입력 필드 초기화 및 포커스
+                document.getElementById('playerNameInput').value = '';
+                document.getElementById('playerNameInput').focus();
+            }
+        }
+
+        // 게임 상태 동기화
+        function syncGameState() {
+            loadGameStateFromStorage();
+            
+            const key = `quizGameState_${sessionId}`;
+            const stored = localStorage.getItem(key);
+            if (stored) {
+                try {
+                    const state = JSON.parse(stored);
+                    
+                    // 게임 시작 요청 감지
+                    if (state.startGame && !gameState.gameActive) {
+                        gameState.gameActive = true;
+                        gameState.currentQuizIndex = 0;
+                        startGameNow();
+                    }
+                } catch (e) {}
+            }
+        }
+
+        // 게임 입장
+        function enterGame() {
+            const nameInput = document.getElementById('playerNameInput');
+            const name = nameInput.value.trim();
+
+            if (!name) {
+                alert('이름을 입력해주세요!');
+                return;
+            }
+
+            if (gameState.players.some(p => p.name === name)) {
+                alert('이미 입장한 이름입니다!');
+                return;
+            }
+
+            const colorIdx = gameState.players.length % CHARACTER_COLORS.length;
+            const emojiIdx = gameState.players.length % CHARACTER_EMOJIS.length;
+
+            const player = {
+                id: gameState.players.length,
+                tabId: tabId, // 탭 고유 ID 저장
+                name: name,
+                emoji: CHARACTER_EMOJIS[emojiIdx],
+                color: CHARACTER_COLORS[colorIdx],
+                x: Math.random() * 200 + 50,
+                y: Math.random() * 100 + 50,
+                lives: 2,
+                eliminated: false,
+                inO: true,
+                ready: false,
+                targetX: null,
+                targetY: null
+            };
+
+            gameState.players.push(player);
+            savePlayersToStorage();
+            updatePlayersList();
+
+            nameInput.value = '';
+            nameInput.focus();
+        }
+
+        // 플레이어 목록 업데이트
+        function updatePlayersList() {
+            const playersList = document.getElementById('playersList');
+            const playerCountDisplay = document.getElementById('playerCountDisplay');
+            const readyButton = document.getElementById('readyButton');
+            const myTabId = sessionStorage.getItem('tabId');
+
+            playerCountDisplay.textContent = gameState.players.length;
+
+            if (gameState.players.length === 0) {
+                playersList.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">입장한 플레이어가 없습니다.</p>';
+                readyButton.disabled = true;
+                return;
+            }
+
+            playersList.innerHTML = gameState.players.map((player, idx) => {
+                const isMe = player.tabId === myTabId;
+                return `
+                    <div class="player-item" style="${isMe ? 'background: rgba(102, 126, 234, 0.1); border-left: 4px solid #667eea;' : ''}">
+                        <div class="player-item-left">
+                            <div class="player-item-emoji">${player.emoji}</div>
+                            <div class="player-item-name">${player.name}${isMe ? ' 👉 나' : ''}</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            ${player.ready ? '<div class="ready-badge">✓ Ready</div>' : ''}
+                            ${isMe ? `<button class="delete-player-btn" data-index="${idx}" style="background: #ff6b6b; color: white; border: none; width: 28px; height: 28px; border-radius: 4px; cursor: pointer; font-size: 0.9em; padding: 0; display: flex; align-items: center; justify-content: center;">✕</button>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // X 버튼 클릭 핸들러
+            document.querySelectorAll('.delete-player-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    deletePlayer();
+                });
+            });
+
+            readyButton.disabled = false;
+            updateReadyButton();
+            
+            const allReady = gameState.players.every(p => p.ready);
+            if (allReady && gameState.players.length > 0) {
+                const key = `quizGameState_${sessionId}`;
+                localStorage.setItem(key, JSON.stringify({ startGame: true }));
+            }
+        }
+
+        function updateReadyButton() {
+            const myTabId = sessionStorage.getItem('tabId');
+            const myPlayer = gameState.players.find(p => p.tabId === myTabId);
+            const readyButton = document.getElementById('readyButton');
+
+            if (myPlayer && myPlayer.ready) {
+                readyButton.textContent = '준비 취소';
+                readyButton.classList.add('ready');
+            } else {
+                readyButton.textContent = '준비 완료';
+                readyButton.classList.remove('ready');
+            }
+        }
+
+        // Ready 토글
+        function toggleReady() {
+            const myTabId = sessionStorage.getItem('tabId');
+            const myPlayer = gameState.players.find(p => p.tabId === myTabId);
+
+            if (myPlayer) {
+                myPlayer.ready = !myPlayer.ready;
+                savePlayersToStorage();
+                updatePlayersList();
+            }
+        }
+
+        function startGameNow() {
+            gameState.currentQuizIndex = 0;
+            gameState.gameActive = true;
+            gameState.paused = false;
+
+            gameState.players.forEach(player => {
+                player.lives = 2;
+                player.eliminated = false;
+                player.inO = Math.random() > 0.5;
+                player.targetX = null;
+                player.targetY = null;
+            });
+            savePlayersToStorage();
+            saveGameStateToStorage();
+
+            document.getElementById('selectionScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'block';
+
+            setupGame();
+            nextQuiz();
+        }
+
+        function setupGame() {
+            const oArea = document.getElementById('oArea');
+            const xArea = document.getElementById('xArea');
+
+            oArea.querySelectorAll('.player').forEach(p => p.remove());
+            xArea.querySelectorAll('.player').forEach(p => p.remove());
+
+            gameState.players.forEach(player => {
+                const playerEl = document.createElement('div');
+                playerEl.className = 'player';
+                playerEl.id = `player${player.id}`;
+                playerEl.style.backgroundColor = player.color;
+                playerEl.textContent = player.emoji;
+                playerEl.dataset.playerId = player.id;
+
+                const nameLabel = document.createElement('div');
+                nameLabel.className = 'player-name';
+                nameLabel.textContent = player.name;
+                playerEl.appendChild(nameLabel);
+
+                const area = player.inO ? oArea : xArea;
+                area.appendChild(playerEl);
+                updatePlayerPosition(player, playerEl);
+            });
+
+            document.getElementById('oArea').addEventListener('click', (e) => {
+                if (!gameState.paused) moveTowards(e, true);
+            });
+            document.getElementById('xArea').addEventListener('click', (e) => {
+                if (!gameState.paused) moveTowards(e, false);
+            });
+
+            setupKeyboardMovement();
+            updatePlayersStatus();
+            startAnimationLoop();
+        }
+
+        function setupKeyboardMovement() {
+            document.addEventListener('keydown', (e) => {
+                if (!gameState.gameActive) return;
+                const myTabId = sessionStorage.getItem('tabId');
+                const myPlayer = gameState.players.find(p => p.tabId === myTabId);
+                
+                if (!myPlayer || myPlayer.eliminated) return;
+
+                if ((e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') && gameState.paused) {
+                    movePlayerLeft(myPlayer);
+                } else if ((e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') && gameState.paused) {
+                    movePlayerRight(myPlayer);
+                }
+            });
+        }
+
+        function movePlayerLeft(player) {
+            const xArea = document.getElementById('xArea');
+            player.inO = false;
+            const element = document.getElementById(`player${player.id}`);
+            const parent = element.parentElement;
+            if (parent.id !== 'xArea') {
+                xArea.appendChild(element);
+            }
+        }
+
+        function movePlayerRight(player) {
+            const oArea = document.getElementById('oArea');
+            player.inO = true;
+            const element = document.getElementById(`player${player.id}`);
+            const parent = element.parentElement;
+            if (parent.id !== 'oArea') {
+                oArea.appendChild(element);
+            }
+        }
+
+        function moveTowards(event, isO) {
+            if (gameState.paused) return;
+
+            const area = event.currentTarget;
+            if (!area) return;
+
+            const rect = area.getBoundingClientRect();
+            const clickX = event.clientX - rect.left;
+            const clickY = event.clientY - rect.top;
+
+            // 자신의 탭의 플레이어만 이동
+            const myTabId = sessionStorage.getItem('tabId');
+            const player = gameState.players.find(p => p.tabId === myTabId);
+            
+            if (player && !player.eliminated && gameState.gameActive) {
+                player.inO = isO;
+                player.targetX = Math.max(0, Math.min(clickX - 25, rect.width - 50));
+                player.targetY = Math.max(0, Math.min(clickY - 25, rect.height - 50));
+
+                const element = document.getElementById(`player${player.id}`);
+                const newArea = isO ? document.getElementById('oArea') : document.getElementById('xArea');
+                if (element && element.parentElement !== newArea) {
+                    newArea.appendChild(element);
+                }
+                savePlayersToStorage();
+            }
+        }
+
+        function startAnimationLoop() {
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+
+            const animate = () => {
+                // 다른 탭의 플레이어 위치 실시간 동기화
+                const key = `quizGamePlayers_${sessionId}`;
+                const stored = localStorage.getItem(key);
+                if (stored) {
+                    try {
+                        const remotePlayers = JSON.parse(stored);
+                        remotePlayers.forEach((remotePlayer, idx) => {
+                            if (gameState.players[idx]) {
+                                // 다른 탭의 플레이어 위치만 업데이트
+                                gameState.players[idx].x = remotePlayer.x;
+                                gameState.players[idx].y = remotePlayer.y;
+                                gameState.players[idx].inO = remotePlayer.inO;
+                                gameState.players[idx].eliminated = remotePlayer.eliminated;
+                            }
+                        });
+                    } catch (e) {}
+                }
+
+                gameState.players.forEach(player => {
+                    if (player.targetX !== null && player.targetY !== null && !gameState.paused) {
+                        const dx = player.targetX - player.x;
+                        const dy = player.targetY - player.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+
+                        if (distance > 2) {
+                            const speed = 3;
+                            player.x += (dx / distance) * speed;
+                            player.y += (dy / distance) * speed;
+
+                            const element = document.getElementById(`player${player.id}`);
+                            if (element) {
+                                updatePlayerPosition(player, element);
+                            }
+                        }
+                    }
+                });
+
+                if (gameState.gameActive) {
+                    animationFrameId = requestAnimationFrame(animate);
+                }
+            };
+
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        function updatePlayerPosition(player, element) {
+            const area = document.getElementById(player.inO ? 'oArea' : 'xArea');
+            const rect = area.getBoundingClientRect();
+
+            let x = player.x;
+            let y = player.y;
+
+            x = Math.max(0, Math.min(x, rect.width - 50));
+            y = Math.max(0, Math.min(y, rect.height - 50));
+
+            player.x = x;
+            player.y = y;
+
+            element.style.left = x + 'px';
+            element.style.top = y + 'px';
+        }
+
+        function nextQuiz() {
+            if (gameState.currentQuizIndex >= QUIZZES.length) {
+                endGame();
+                return;
+            }
+
+            const quiz = QUIZZES[gameState.currentQuizIndex];
+            document.getElementById('quizNumber').textContent = `문제 ${gameState.currentQuizIndex + 1}/10`;
+            document.getElementById('quizQuestion').textContent = quiz.q;
+
+            // 문제 시작 시간 기록 (모든 탭이 같은 기준)
+            gameState.quizStartTime = Date.now();
+            saveGameStateToStorage();
+            
+            let timeLeft = gameState.totalQuizTime;
+            const timerEl = document.getElementById('quizTimer');
+            timerEl.classList.remove('urgent');
+
+            if (timerInterval) clearInterval(timerInterval);
+            
+            // 타이머는 경과 시간으로 계산 (동기화)
+            timerInterval = setInterval(() => {
+                if (gameState.paused) return;
+
+                const elapsed = Math.floor((Date.now() - gameState.quizStartTime) / 1000);
+                timeLeft = gameState.totalQuizTime - elapsed;
+                timerEl.textContent = timeLeft + '초';
+
+                if (timeLeft <= 3) {
+                    timerEl.classList.add('urgent');
+                    if (timeLeft === 3 || timeLeft === 2 || timeLeft === 1) {
+                        playBeep();
+                    }
+                }
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    checkAnswers(quiz.a);
+                }
+            }, 100);
+        }
+
+        function playBeep() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.frequency.value = 800;
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.1);
+            } catch (e) {}
+        }
+
+        function pauseGame() {
+            if (gameState.gameActive && !gameState.paused) {
+                gameState.paused = true;
+                saveGameStateToStorage();
+                
+                document.getElementById('pauseModal').classList.add('show');
+                document.getElementById('quizArea').classList.add('paused');
+                if (timerInterval) clearInterval(timerInterval);
+            }
+        }
+
+        function resumeGame() {
+            if (gameState.paused) {
+                gameState.paused = false;
+                saveGameStateToStorage();
+                
+                document.getElementById('pauseModal').classList.remove('show');
+                document.getElementById('quizArea').classList.remove('paused');
+                nextQuiz();
+            }
+        }
+
+        function stopGame() {
+            gameState.gameActive = false;
+            gameState.paused = false;
+            saveGameStateToStorage();
+            
+            if (timerInterval) clearInterval(timerInterval);
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+
+            document.getElementById('gameScreen').style.display = 'none';
+            document.getElementById('selectionScreen').style.display = 'block';
+            
+            gameState.players.forEach(p => {
+                p.lives = 2;
+                p.eliminated = false;
+                p.ready = false;
+            });
+            savePlayersToStorage();
+            updatePlayersList();
+        }
+
+        function checkAnswers(correctAnswer) {
+            const oArea = document.getElementById('oArea');
+            const xArea = document.getElementById('xArea');
+
+            gameState.players.forEach(player => {
+                if (player.eliminated) return;
+
+                const isInOArea = oArea.contains(document.getElementById(`player${player.id}`));
+                const isCorrect = isInOArea === correctAnswer;
+
+                if (!isCorrect) {
+                    player.lives--;
+                    if (player.lives <= 0) {
+                        player.eliminated = true;
+                        document.getElementById(`player${player.id}`).style.opacity = '0.3';
+                    }
+                }
+            });
+
+            updatePlayersStatus();
+            savePlayersToStorage();
+            saveGameStateToStorage();
+
+            const activePlayers = gameState.players.filter(p => !p.eliminated);
+            if (activePlayers.length === 0 && gameState.currentQuizIndex < QUIZZES.length - 1) {
+                showBonusRound();
+            } else if (activePlayers.length <= 1) {
+                endGame();
+            } else {
+                gameState.currentQuizIndex++;
+                saveGameStateToStorage();
+                setTimeout(nextQuiz, 2000);
+            }
+        }
+
+        function showBonusRound() {
+            const bonusOverlay = document.getElementById('bonusOverlay');
+            bonusOverlay.classList.add('show');
+
+            gameState.players.forEach(player => {
+                player.lives = 1; // 한 목숨만 제공
+                player.eliminated = false;
+            });
+            savePlayersToStorage();
+
+            setTimeout(() => {
+                bonusOverlay.classList.remove('show');
+                gameState.currentQuizIndex++;
+                saveGameStateToStorage();
+                nextQuiz();
+            }, 2000);
+        }
+
+        function updatePlayersStatus() {
+            const statusHTML = gameState.players.map(player => {
+                const hearts = '❤️'.repeat(Math.max(0, player.lives));
+                const statusClass = player.eliminated ? 'status-eliminated' : '';
+                
+                return `
+                    <div class="player-status-item ${statusClass}">
+                        <div class="status-color" style="background: ${player.color}"></div>
+                        <div class="status-info">
+                            <div class="status-name">${player.name}</div>
+                            <div class="status-lives">${player.eliminated ? '탈락' : hearts}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('playersStatus').innerHTML = statusHTML;
+        }
+
+        function endGame() {
+            gameState.gameActive = false;
+            saveGameStateToStorage();
+            
+            if (timerInterval) clearInterval(timerInterval);
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+
+            document.getElementById('gameScreen').style.display = 'none';
+            document.getElementById('gameOverScreen').style.display = 'block';
+
+            // 등수 계산
+            const allPlayers = [...gameState.players].sort((a, b) => {
+                // 탈락 여부로 정렬 (생존자 먼저)
+                if (a.eliminated !== b.eliminated) return a.eliminated ? 1 : -1;
+                // 남은 목숨으로 정렬
+                return b.lives - a.lives;
+            });
+
+            const survivors = gameState.players.filter(p => !p.eliminated);
+
+            let content = '';
+            if (survivors.length === 1) {
+                const winner = survivors[0];
+                content = `<div class="winner">${winner.emoji} ${winner.name} 우승! ${winner.emoji}</div>`;
+            } else if (survivors.length === 0) {
+                content = `<div class="winner">🎲 모두 탈락! 다시 도전하세요! 🎲</div>`;
+            } else {
+                content = `<div class="winner">🏆 ${survivors.map(p => `${p.emoji} ${p.name}`).join(', ')} 우승! 🏆</div>`;
+            }
+
+            document.getElementById('gameOverContent').innerHTML = content;
+
+            // 등수 판
+            const rankingHTML = allPlayers.map((player, idx) => `
+                <div style="padding: 10px; display: flex; align-items: center; gap: 10px; margin: 5px 0;">
+                    <span style="font-size: 1.5em; font-weight: bold; width: 40px; text-align: center;">${idx + 1}위</span>
+                    <span style="font-size: 1.5em;">${player.emoji}</span>
+                    <span style="flex: 1; font-weight: bold;">${player.name}</span>
+                    <span style="color: ${player.eliminated ? '#ccc' : '#333'}; ">${player.eliminated ? '탈락' : '❤️'.repeat(player.lives)}</span>
+                </div>
+            `).join('');
+
+            document.getElementById('rankingList').innerHTML = rankingHTML;
+        }
+
+        init();
+    </script>
 </body>
 </html>
