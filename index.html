@@ -1,345 +1,106 @@
 ﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>O/X 상식퀴즈 게임</title>
-    <style>
-        * { box-sizing: border-box; margin:0; padding:0; }
-        body { font-family: Arial, sans-serif; background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); min-height:100vh; display:flex; justify-content:center; align-items:center; padding:20px; }
-        .container { width:100%; max-width:760px; }
-        .card { background:#fff; border-radius:16px; box-shadow:0 12px 30px rgba(0,0,0,0.2); padding:20px; }
-        h1 { font-size:1.8em; margin-bottom:.5rem; text-align:center; color:#222; }
-        .subtitle { text-align:center; color:#666; margin-bottom:1rem; }
-        input[type=text] { width:100%; padding:12px; border:2px solid #667eea; border-radius:8px; margin-bottom:.75rem; }
-        button { width:100%; padding:12px; border:0; border-radius:8px; font-size:1rem; cursor:pointer; color:#fff; background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); margin-bottom:.5rem; }
-        button:disabled { opacity:.5; cursor:not-allowed; }
-        .list { margin:1rem 0; background:#f7f7f7; border-radius:10px; padding:12px; max-height:180px; overflow:auto; }
-        .list-item{ border-bottom:1px solid #ddd; padding:8px 0; display:flex; justify-content:space-between; }
-        .game-screen,.pause-modal,.countdown-overlay,.game-over-screen { display:none; }
-        .game-screen.active { display:block; }
-        .pause-modal.active,.countdown-overlay.active,.game-over-screen.active { display:flex; }
-        .pause-modal,.countdown-overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); justify-content:center; align-items:center; z-index:1000; flex-direction:column; }
-        .pause-box,.countdown-box{ background:#fff; padding:30px; border-radius:14px; text-align:center; }
-        .countdown-number { font-size:5rem; color:#333; }
-        .quiz-area{ margin-top:1rem; padding:16px; background:#fff; border-radius:12px; box-shadow:0 6px 16px rgba(0,0,0,.12); }
-        .quiz-number, .quiz-timer{ color:#4a4a4a; font-weight:700; }
-        .quiz-question{ margin:12px 0; font-size:1.4rem; color:#333; }
-        .player-status{ margin-top:1rem; }
-        .player-status-item{ margin:6px 0; padding:8px; border-radius:8px; border:1px solid #ddd; }
-        .controls{ display:flex; gap:10px; margin-top:1rem; }
-        .controls button{ flex:1; }
-        .ready-yes{ color:green; font-weight:700; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>O/X 상식퀴즈</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:Arial,sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px;}
+    .card{width:100%;max-width:760px;background:#fff;border-radius:16px;box-shadow:0 12px 30px rgba(0,0,0,.2);padding:20px;}
+    h1{text-align:center;color:#222;margin-bottom:8px;font-size:2rem;}
+    .subtitle{text-align:center;color:#666;margin-bottom:18px;}
+    input, button{font-size:1rem;padding:12px;border-radius:8px;border:1px solid #ccc;}
+    input{width:100%;margin-bottom:12px;}
+    button{width:100%;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;cursor:pointer;}
+    button:disabled{opacity:.5;cursor:not-allowed;}
+    .list{background:#f7f7f7;padding:10px;border-radius:10px;max-height:180px;overflow:auto;margin-top:12px;}
+    .item{margin:6px 0;padding:8px;background:#fff;border-radius:8px;border:1px solid #ddd;display:flex;justify-content:space-between;}
+    .game-screen{display:none;}
+    .active{display:block;}
+    .controls{display:flex;gap:8px;margin-top:12px;}
+    .controls button{flex:1;background:#ff6b6b;}
+    .controls button.ok{background:#51cf66;}
+    .pause{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:1000;visibility:hidden;opacity:0;transition:all .2s;}
+    .pause.show{visibility:visible;opacity:1;}
+    .pausebox{background:#fff;padding:30px;border-radius:12px;text-align:center;}
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="card" id="lobbyScreen">
-            <h1>O/X 상식퀴즈 게임</h1>
-            <p class="subtitle">이름을 입력하고 입장하세요. 모두 준비하면 자동으로 시작됩니다.</p>
-            <input type="text" id="playerNameInput" placeholder="플레이어 이름 (최대 12자)" maxlength="12" />
-            <button id="enterBtn">입장하기</button>
-            <div class="list" id="playersContainer"><div style="text-align:center;color:#888;">입장한 플레이어가 없습니다.</div></div>
-            <button id="readyBtn" disabled>준비 완료</button>
-        </div>
+  <div class="card" id="lobby">
+    <h1>O/X 상식퀴즈 게임</h1>
+    <p class="subtitle">이름 입력 후 입장, 모두 준비 시 시작</p>
+    <input id="name" placeholder="이름" maxlength="12" />
+    <button id="enterBtn">입장하기</button>
+    <div class="list" id="players"></div>
+    <button id="readyBtn" disabled>준비 완료</button>
+  </div>
 
-        <div class="card game-screen" id="gameScreen">
-            <div class="quiz-area">
-                <div class="quiz-number" id="quizNumber">문제 1/1</div>
-                <div class="quiz-question" id="quizQuestion">준비 중...</div>
-                <div class="quiz-timer" id="quizTimer">15초</div>
-            </div>
-            <div class="player-status" id="statusContainer"></div>
-            <div class="controls">
-                <button id="pauseBtn">일시정지</button>
-                <button id="resumeBtn" disabled>재개</button>
-                <button id="stopBtn">게임종료</button>
-            </div>
-            <div class="controls">
-                <button id="oBtn" style="background:#51cf66">O</button>
-                <button id="xBtn" style="background:#ff6b6b">X</button>
-            </div>
-        </div>
-
-        <div class="pause-modal" id="pauseModal"><div class="pause-box"><h2>일시정지</h2><button id="pauseResumeBtn">재개</button></div></div>
-        <div class="countdown-overlay" id="countdownOverlay"><div class="countdown-box"><div class="countdown-number" id="countdownNumber">3</div><p>다음 문제가 곧 시작됩니다</p></div></div>
-
-        <div class="game-over-screen" id="gameOverScreen"><div class="card"><h2>게임 종료</h2><div id="resultText" style="margin:12px 0;"></div><div id="rankings" style="text-align:left;"></div><button id="restartBtn">다시하기</button></div></div>
+  <div class="card game-screen" id="game">
+    <h1>퀴즈 진행중</h1>
+    <div id="qIdx">문제 1/1</div>
+    <div id="qText" style="margin:10px 0;font-size:1.35rem;color:#333;">준비 중...</div>
+    <div id="timer" style="margin-bottom:12px;font-weight:bold;">15초</div>
+    <div class="controls">
+      <button class="ok" id="oBtn">O</button>
+      <button id="xBtn">X</button>
     </div>
+    <div style="margin-top:12px;background:#f7f7f7;padding:10px;border-radius:8px;" id="status"></div>
+    <div class="controls" style="margin-top:8px;">
+      <button id="pauseBtn" style="background:#ffa500;">일시정지</button>
+      <button id="stopBtn" style="background:#ff6b6b;">중단</button>
+    </div>
+  </div>
 
-    <script>
-        const sessionId = 'quizGame';
-        const playersKey = 'quizGamePlayers_' + sessionId;
-        const stateKey = 'quizGameState_' + sessionId;
+  <div class="pause" id="pauseModal"><div class="pausebox"><h2>일시정지됨</h2><button id="resumeBtn" style="background:#51cf66;width:100%;">재개</button></div></div>
 
-        const QUIZZES = [
-            {q:'지구는 둥글다.', a:true},
-            {q:'고양이는 포유류가 아니다.', a:false},
-            {q:'물의 화학식은 H2O이다.', a:true},
-            {q:'태양은 지구보다 작다.', a:false},
-            {q:'1+1은 2이다.', a:true},
-            {q:'공기 중 산소 농도는 약 79%이다.', a:false},
-            {q:'금은 은보다 밀도가 낮다.', a:false},
-            {q:'사과는 채소다.', a:false},
-            {q:'신장은 폐와 같은 기관계에 속한다.', a:false},
-            {q:'인체에서 가장 큰 장기는 피부이다.', a:true}
-        ];
+  <div class="card" id="end" style="display:none;"><h1>게임 종료</h1><div id="result"></div><button id="restartBtn" style="margin-top:12px;">다시하기</button></div>
 
-        let tabId = sessionStorage.getItem('tabId');
-        if(!tabId){ tabId = 'tab_' + Date.now() + '_' + Math.random().toString(36).slice(2); sessionStorage.setItem('tabId', tabId); }
+  <script>
+    const KEY_P = 'quiz_players';
+    const KEY_S = 'quiz_state';
+    const QUESTIONS = [
+      {q:'지구는 둥글다.', a:true},
+      {q:'고양이는 초식동물이다.', a:false},
+      {q:'물은 H2O이다.', a:true},
+      {q:'1+1=3이다.', a:false},
+      {q:'태양은 지구보다 작다.', a:false}
+    ];
 
-        let gameState = {
-            players: [],
-            currentQuiz: 0,
-            paused: false,
-            active: false,
-            timerStarted: 0,
-            leftSeconds: 15,
-            countdownNext: false,
-            pendingAnswer: null
-        };
+    let state = {players:[],active:false,paused:false,cur:0,sec:15};
+    let timer=null;
 
-        const lobbyScreen = document.getElementById('lobbyScreen');
-        const gameScreen = document.getElementById('gameScreen');
-        const gameOverScreen = document.getElementById('gameOverScreen');
+    const $=id=>document.getElementById(id);
+    const render = ()=>{
+      const p = state.players;
+      $('players').innerHTML = p.length ? p.map(x=>`<div class="item"><span>${x.name}</span><span>${x.ready?'준비':'대기'}</span></div>`).join('') : '<div style="text-align:center;color:#999;">플레이어 없음</div>';
+      $('readyBtn').disabled = !p.some(x=>x.name===sessionStorage.getItem('me'));
+      $('readyBtn').textContent = p.find(x=>x.name===sessionStorage.getItem('me'))?.ready ? '준비취소':'준비완료';
+      if(state.active){$('lobby').style.display='none';$('game').classList.add('active');$('end').style.display='none';}
+      else if(state.cur>=QUESTIONS.length || p.filter(x=>!x.elim).length<=1){$('lobby').style.display='none';$('game').classList.remove('active');$('end').style.display='block';$('result').textContent = p.filter(x=>!x.elim)[0]?.name ? `${p.filter(x=>!x.elim)[0].name} 승리!`:'모두 탈락';}
+      else{$('lobby').style.display='block';$('game').classList.remove('active');$('end').style.display='none';}
+      saveState();
+    };
 
-        const enterBtn = document.getElementById('enterBtn');
-        const readyBtn = document.getElementById('readyBtn');
-        const pauseBtn = document.getElementById('pauseBtn');
-        const resumeBtn = document.getElementById('resumeBtn');
-        const stopBtn = document.getElementById('stopBtn');
-        const oBtn = document.getElementById('oBtn');
-        const xBtn = document.getElementById('xBtn');
-        const pauseModal = document.getElementById('pauseModal');
-        const pauseResumeBtn = document.getElementById('pauseResumeBtn');
-        const countdownOverlay = document.getElementById('countdownOverlay');
-        const countdownNumber = document.getElementById('countdownNumber');
-        const restartBtn = document.getElementById('restartBtn');
+    const saveState = ()=>{localStorage.setItem(KEY_P,JSON.stringify(state.players)); localStorage.setItem(KEY_S,JSON.stringify({active:state.active,cur:state.cur,sec:state.sec,paused:state.paused}));};
+    const loadState = ()=>{try{const a=JSON.parse(localStorage.getItem(KEY_P)); if(a)state.players=a;}catch{} try{const b=JSON.parse(localStorage.getItem(KEY_S)); if(b){state.active=b.active;state.cur=b.cur;state.sec=b.sec;state.paused=b.paused;}}catch{} };
 
-        const playersContainer = document.getElementById('playersContainer');
-        const statusContainer = document.getElementById('statusContainer');
-        const quizNumber = document.getElementById('quizNumber');
-        const quizQuestion = document.getElementById('quizQuestion');
-        const quizTimer = document.getElementById('quizTimer');
-        const resultText = document.getElementById('resultText');
-        const rankings = document.getElementById('rankings');
+    const startTimer = ()=>{clearInterval(timer); timer=setInterval(()=>{if(state.paused)return;state.sec--; $('timer').textContent=state.sec+'초'; if(state.sec<=0){clearInterval(timer); answer(null);} },1000);};
+    const showQuestion = ()=>{if(state.cur>=QUESTIONS.length){state.active=false;render();return;} $('qIdx').textContent=`문제 ${state.cur+1}/${QUESTIONS.length}`; $('qText').textContent=QUESTIONS[state.cur].q; $('timer').textContent=state.sec+'초'; startTimer(); };
 
-        let intervalId = null;
+    const answer = (v)=>{if(!state.active)return;const right=QUESTIONS[state.cur].a; state.players.forEach(p=>{if(p.elim)return; if(v===null || v!==right){p.lives--; if(p.lives<=0){p.elim=true;}}}); state.cur++; state.sec=15; if(state.cur>=QUESTIONS.length||state.players.filter(p=>!p.elim).length<=1){state.active=false;clearInterval(timer);render();return;} state.paused=false; $('pauseModal').classList.remove('show'); showQuestion();};
 
-        function load() {
-            const playersRaw = localStorage.getItem(playersKey);
-            if(playersRaw){
-                try{ gameState.players = JSON.parse(playersRaw); } catch { gameState.players = []; }
-            }
+    $('enterBtn').onclick=()=>{const n=$('name').value.trim(); if(!n){alert('이름입력');return;} if(state.players.some(p=>p.name===n)){alert('중복');return;} state.players.push({name:n,ready:false,lives:2,elim:false}); sessionStorage.setItem('me',n); $('name').value=''; render();};
+    $('readyBtn').onclick=()=>{const me=sessionStorage.getItem('me');const p=state.players.find(item=>item.name===me); if(!p)return; p.ready=!p.ready; if(state.players.every(x=>x.ready)) {state.active=true; state.cur=0; state.sec=15; state.players.forEach(p=>{p.elim=false; p.lives=2;}); showQuestion();} render();};
+    $('pauseBtn').onclick=()=>{if(!state.active||state.paused)return;state.paused=true; $('pauseModal').classList.add('show');};
+    $('resumeBtn').onclick=()=>{if(!state.active||!state.paused)return;state.paused=false;$('pauseModal').classList.remove('show');};
+    $('stopBtn').onclick=()=>{state.active=false;clearInterval(timer);render();};
+    $('oBtn').onclick=()=>answer(true);
+    $('xBtn').onclick=()=>answer(false);
+    $('restartBtn').onclick=()=>{state.active=false;state.cur=0;state.sec=15;state.players.forEach(p=>{p.ready=false;p.elim=false;p.lives=2;});render();};
 
-            const stateRaw = localStorage.getItem(stateKey);
-            if(stateRaw){
-                try{ const st = JSON.parse(stateRaw); Object.assign(gameState, st); } catch{}
-            }
-
-            renderPlayers();
-            applyScreen();
-            if(gameState.active && !gameState.paused){ startTimer(); }
-        }
-
-        function save() {
-            localStorage.setItem(playersKey, JSON.stringify(gameState.players));
-            localStorage.setItem(stateKey, JSON.stringify({
-                currentQuiz: gameState.currentQuiz,
-                paused: gameState.paused,
-                active: gameState.active,
-                timerStarted: gameState.timerStarted,
-                leftSeconds: gameState.leftSeconds
-            }));
-        }
-
-        function addPlayer(name){
-            if(!name) return alert('이름을 입력하세요.');
-            if(gameState.players.some(p=>p.name===name)) return alert('중복 이름입니다.');
-
-            gameState.players.push({id: tabId + '_' + Date.now(), tabId, name, ready:false, lives:2, eliminated:false});
-            save();
-            renderPlayers();
-            checkAutoStart();
-        }
-
-        function setReady(){
-            const me = gameState.players.find(p=>p.tabId===tabId);
-            if(!me) return;
-            me.ready = !me.ready;
-            save();
-            renderPlayers();
-            checkAutoStart();
-        }
-
-        function checkAutoStart(){
-            if(gameState.players.length>0 && gameState.players.every(p=>p.ready && !p.eliminated) && !gameState.active){
-                startGame();
-            }
-        }
-
-        function renderPlayers(){
-            if(gameState.players.length===0){
-                playersContainer.innerHTML='<div style="text-align:center;color:#888;">입장한 플레이어가 없습니다.</div>';
-                readyBtn.disabled=true;
-                return;
-            }
-            readyBtn.disabled=false;
-            const me = gameState.players.find(p=>p.tabId===tabId);
-            if(!me) readyBtn.disabled=true;
-
-            playersContainer.innerHTML = gameState.players.map(p=>{
-                const desc = p.eliminated ? '탈락' : (p.ready ? '준비됨' : '대기');
-                const meFlag = p.tabId===tabId ? ' (나)' : '';
-                return `<div class="list-item"><div>${p.name}${meFlag}</div><div>${desc} /♥${p.lives}</div></div>`;
-            }).join('');
-
-            renderStatus();
-        }
-
-        function renderStatus(){
-            statusContainer.innerHTML = gameState.players.map((p,i)=>{
-                return `<div class="player-status-item">${i+1}. ${p.name} ${p.eliminated?'탈락':`♥${p.lives}`} ${p.ready ? '<span class="ready-yes">준비</span>':''}</div>`;
-            }).join('');
-        }
-
-        function applyScreen(){
-            if(gameState.active){
-                lobbyScreen.style.display='none';
-                gameScreen.classList.add('active');
-                gameOverScreen.classList.remove('active');
-            } else {
-                gameScreen.classList.remove('active');
-                if(gameState.currentQuiz>=QUIZZES.length || gameState.players.filter(p=>!p.eliminated).length<=1){
-                    gameOverScreen.classList.add('active');
-                    lobbyScreen.style.display='none';
-                } else {
-                    lobbyScreen.style.display='block';
-                    gameOverScreen.classList.remove('active');
-                }
-            }
-            updateQuizView();
-        }
-
-        function startGame(){
-            gameState.active=true;
-            gameState.paused=false;
-            gameState.currentQuiz=0;
-            gameState.leftSeconds=15;
-            gameState.timerStarted=Date.now();
-            gameState.players.forEach(p=>{p.eliminated=false; p.lives=2; p.ready=true;});
-            save();
-            showCountdown(()=>{gameState.countdownNext=false; applyScreen(); startTimer();});
-        }
-
-        function showCountdown(callback){
-            let count=3; countdownNumber.textContent=count; countdownOverlay.classList.add('active');
-            const id=setInterval(()=>{
-                count--;
-                if(count<=0){ clearInterval(id); countdownOverlay.classList.remove('active'); if(callback) callback(); return; }
-                countdownNumber.textContent=count;
-            }, 700);
-        }
-
-        function pauseGame(){
-            if(!gameState.active || gameState.paused) return;
-            gameState.paused=true;
-            clearInterval(intervalId);
-            pauseModal.classList.add('active');
-            pauseBtn.disabled=true; resumeBtn.disabled=false;
-            save();
-        }
-
-        function resumeGame(){
-            if(!gameState.active || !gameState.paused) return;
-            gameState.paused=false;
-            pauseModal.classList.remove('active');
-            pauseBtn.disabled=false; resumeBtn.disabled=true;
-            gameState.timerStarted = Date.now() - (15-gameState.leftSeconds)*1000;
-            startTimer();
-            save();
-        }
-
-        function stopGame(){
-            gameState.active=false;
-            gameState.paused=false;
-            gameState.currentQuiz=0;
-            gameState.leftSeconds=15;
-            gameState.players.forEach(p=>{p.ready=false;});
-            clearInterval(intervalId);
-            save();
-            applyScreen();
-        }
-
-        function startTimer(){
-            renderQuestion();
-            clearInterval(intervalId);
-            intervalId = setInterval(()=>{
-                if(gameState.paused) return;
-                const elapsed = Math.floor((Date.now()-gameState.timerStarted)/1000);
-                gameState.leftSeconds = Math.max(0, 15 - elapsed);
-                quizTimer.textContent = gameState.leftSeconds + '초';
-                if(gameState.leftSeconds<=0){
-                    clearInterval(intervalId);
-                    resolveAnswer(null);
-                }
-                save();
-            },250);
-        }
-
-        function renderQuestion(){
-            if(gameState.currentQuiz >= QUIZZES.length){
-                finishGame();
-                return;
-            }
-            quizNumber.textContent = `문제 ${gameState.currentQuiz+1}/${QUIZZES.length}`;
-            quizQuestion.textContent = QUIZZES[gameState.currentQuiz].q;
-            quizTimer.textContent = gameState.leftSeconds + '초';
-        }
-
-        function response(v){
-            if(!gameState.active || gameState.paused || gameState.currentQuiz>=QUIZZES.length) return;
-            resolveAnswer(v);
-        }
-
-        function resolveAnswer(answer){
-            const correct = QUIZZES[gameState.currentQuiz].a;
-            gameState.players.forEach(p=>{ if(p.eliminated) return; if(answer===null || answer!==correct){ p.lives -= 1; if(p.lives<=0){ p.eliminated=true; } } });
-            gameState.currentQuiz += 1;
-            if(gameState.players.filter(p=>!p.eliminated).length<=1 || gameState.currentQuiz>=QUIZZES.length){ finishGame(); return; }
-            gameState.leftSeconds = 15;
-            gameState.timerStarted = Date.now();
-            save();
-            showCountdown(()=>{ applyScreen(); startTimer(); });
-        }
-
-        function finishGame(){
-            clearInterval(intervalId);
-            gameState.active=false;
-            const survivors = gameState.players.filter(p=>!p.eliminated).sort((a,b)=>b.lives-a.lives);
-            if(survivors.length===0){ resultText.textContent='모두 탈락했습니다.'; }
-            else { resultText.textContent=`우승: ${survivors[0].name}`; }
-            rankings.innerHTML = gameState.players.map((p,i)=>`${i+1}. ${p.name} - ${p.eliminated?'탈락':`♥${p.lives}`}`).join('<br>');
-            save();
-            applyScreen();
-        }
-
-        enterBtn.addEventListener('click', ()=>{ const name = document.getElementById('playerNameInput').value.trim(); addPlayer(name); document.getElementById('playerNameInput').value=''; });
-        readyBtn.addEventListener('click', setReady);
-        pauseBtn.addEventListener('click', pauseGame);
-        resumeBtn.addEventListener('click', resumeGame);
-        stopBtn.addEventListener('click', stopGame);
-        pauseResumeBtn.addEventListener('click', resumeGame);
-        oBtn.addEventListener('click', ()=> response(true));
-        xBtn.addEventListener('click', ()=> response(false));
-        restartBtn.addEventListener('click', ()=>{ gameState.active=false; gameState.paused=false; gameState.currentQuiz=0; gameState.leftSeconds=15; gameState.players.forEach(p=>{p.ready=false;p.eliminated=false;p.lives=2;}); save(); applyScreen(); });
-
-        window.addEventListener('storage', (e)=>{
-            if(e.key===playersKey){ load(); }
-            if(e.key===stateKey){ load(); }
-        });
-
-        load();
-    </script>
+    window.addEventListener('storage',()=>{loadState();render();});
+    loadState(); render();
+  </script>
 </body>
 </html>
