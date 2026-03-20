@@ -3,783 +3,1010 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>O/X 상식퀴즈 게임</title>
+    <title>O/X 상식퀴즈 멀티플레이</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin:0; padding:0; box-sizing:border-box; }
         body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 10px;
+            font-family:'Arial',sans-serif;
+            background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+            min-height:100vh; display:flex; justify-content:center; align-items:center; padding:10px;
         }
+        .container { width:100%; max-width:900px; }
 
-        .container {
-            width: 100%;
-            max-width: 900px;
+        /* ===== 로비 화면 ===== */
+        .lobby-screen {
+            background:#fff; border-radius:20px; padding:30px;
+            box-shadow:0 10px 40px rgba(0,0,0,.3); text-align:center;
         }
+        .lobby-screen h1 { color:#333; margin-bottom:10px; font-size:2em; }
+        .lobby-screen .subtitle { color:#666; margin-bottom:30px; }
 
-        /* 플레이어 선택 화면 */
-        .selection-screen {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-            text-align: center;
+        .mode-buttons { display:flex; gap:12px; justify-content:center; margin-bottom:30px; flex-wrap:wrap; }
+        .mode-btn {
+            padding:14px 28px; font-size:1.1em; border:none; border-radius:10px;
+            cursor:pointer; transition:all .3s; font-weight:bold;
         }
-
-        .selection-screen h1 {
-            color: #333;
-            margin-bottom: 30px;
-            font-size: 2em;
+        .mode-btn.host-btn {
+            background:linear-gradient(135deg,#667eea,#764ba2); color:#fff;
         }
-
-        .color-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-            gap: 15px;
-            margin-bottom: 30px;
+        .mode-btn.join-btn {
+            background:linear-gradient(135deg,#51cf66,#37b24d); color:#fff;
         }
+        .mode-btn:hover { transform:translateY(-3px); box-shadow:0 5px 20px rgba(0,0,0,.3); }
 
-        .color-option {
-            width: 100%;
-            aspect-ratio: 1;
-            border-radius: 50%;
-            border: 3px solid #ddd;
-            cursor: pointer;
-            font-size: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s;
+        .room-section { margin:20px 0; }
+        .room-code-display {
+            font-size:2.5em; font-weight:bold; color:#667eea;
+            letter-spacing:8px; margin:10px 0;
         }
-
-        .color-option:hover {
-            transform: scale(1.1);
-            border-color: #333;
+        .input-row { display:flex; gap:10px; justify-content:center; margin:10px 0; flex-wrap:wrap; }
+        .input-row input {
+            padding:12px; border:2px solid #667eea; border-radius:8px; font-size:1em; width:200px;
         }
-
-        .color-option.selected {
-            border-color: #333;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+        .input-row input:focus { outline:none; border-color:#764ba2; box-shadow:0 0 10px rgba(118,75,162,.3); }
+        .action-btn {
+            padding:12px 24px; font-size:1em; border:none; border-radius:8px;
+            cursor:pointer; color:#fff; transition:all .3s;
         }
+        .action-btn:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 5px 15px rgba(0,0,0,.3); }
+        .action-btn:disabled { opacity:.5; cursor:not-allowed; }
+        .btn-primary { background:linear-gradient(135deg,#667eea,#764ba2); }
+        .btn-success { background:linear-gradient(135deg,#51cf66,#37b24d); }
+        .btn-danger { background:linear-gradient(135deg,#ff6b6b,#ff5252); }
+        .btn-warning { background:linear-gradient(135deg,#ffa500,#ff8c00); }
 
-        .start-button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 15px 40px;
-            font-size: 1.2em;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-top: 20px;
+        .waiting-area {
+            background:#f9f9f9; border-radius:15px; padding:20px; margin-top:20px; text-align:left;
         }
-
-        .start-button:hover:not(:disabled) {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        .waiting-area h3 { color:#333; margin-bottom:15px; text-align:center; }
+        .player-count { color:#667eea; font-weight:bold; font-size:1.1em; margin-bottom:15px; text-align:center; }
+        .players-list { max-height:300px; overflow-y:auto; }
+        .player-item {
+            background:#fff; padding:12px; margin:8px 0; border-radius:8px;
+            display:flex; align-items:center; justify-content:space-between;
+            border:2px solid #ddd;
         }
+        .player-item.me { background:rgba(102,126,234,.1); border-left:4px solid #667eea; }
+        .player-item-left { display:flex; align-items:center; gap:10px; }
+        .player-item-emoji { font-size:1.5em; }
+        .player-item-name { font-weight:bold; color:#333; }
+        .ready-badge { background:#51cf66; color:#fff; padding:4px 8px; border-radius:5px; font-size:.8em; font-weight:bold; }
+        .host-badge { background:#667eea; color:#fff; padding:4px 8px; border-radius:5px; font-size:.8em; font-weight:bold; }
 
-        .start-button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        .bottom-buttons { display:flex; gap:10px; justify-content:center; margin-top:20px; flex-wrap:wrap; }
+
+        /* ===== 게임 화면 ===== */
+        .game-screen { display:none; }
+        .game-header {
+            display:flex; justify-content:space-between; align-items:center;
+            margin-bottom:20px; gap:10px; flex-wrap:wrap;
         }
-
-        .player-name-input {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            font-size: 1em;
+        .game-header-left { color:#fff; font-weight:bold; font-size:1.1em; }
+        .game-header button {
+            padding:8px 16px; font-size:.9em; border:none; border-radius:8px; cursor:pointer; transition:all .3s; color:#fff;
         }
-
-        /* 게임 화면 */
-        .game-screen {
-            display: none;
-        }
-
         .quiz-area {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
-            text-align: center;
+            background:#fff; border-radius:15px; padding:20px; margin-bottom:20px;
+            box-shadow:0 5px 20px rgba(0,0,0,.2); text-align:center;
         }
-
-        .quiz-number {
-            color: #667eea;
-            font-size: 0.9em;
-            margin-bottom: 10px;
-        }
-
-        .quiz-question {
-            font-size: 1.5em;
-            color: #333;
-            margin: 15px 0;
-            font-weight: bold;
-        }
-
+        .quiz-number { color:#667eea; font-size:.9em; margin-bottom:10px; }
+        .quiz-question { font-size:1.5em; color:#333; margin:15px 0; font-weight:bold; }
         .quiz-timer {
-            display: inline-block;
-            background: #ff6b6b;
-            color: white;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 1.1em;
-            margin-top: 10px;
+            display:inline-block; background:#ff6b6b; color:#fff; padding:8px 16px;
+            border-radius:20px; font-size:1.2em; margin-top:10px; font-weight:bold; min-width:80px;
         }
+        .quiz-timer.urgent { background:#ff4757; animation:pulse .5s infinite; }
+        @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
 
-        .game-board-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 20px;
+        .result-banner {
+            display:none; padding:15px; border-radius:10px; margin-bottom:15px;
+            font-size:1.2em; font-weight:bold; text-align:center;
         }
+        .result-banner.correct { background:#d4edda; color:#155724; }
+        .result-banner.wrong { background:#f8d7da; color:#721c24; }
 
+        .game-board-container { display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:20px; }
         .answer-area {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
-            position: relative;
-            min-height: 300px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            background:#fff; border-radius:15px; padding:20px;
+            box-shadow:0 5px 20px rgba(0,0,0,.2); position:relative;
+            min-height:250px; display:flex; flex-wrap:wrap; align-content:flex-start;
+            cursor:pointer; transition:all .2s; overflow:hidden;
         }
-
-        .answer-area.o-area {
-            border: 4px solid #51cf66;
-        }
-
-        .answer-area.x-area {
-            border: 4px solid #ff6b6b;
-        }
+        .answer-area:hover { transform:scale(1.02); box-shadow:0 8px 25px rgba(0,0,0,.3); }
+        .answer-area.o-area { border:4px solid #51cf66; }
+        .answer-area.x-area { border:4px solid #ff6b6b; }
+        .answer-area.correct-highlight { animation:correctFlash 1s ease; }
+        .answer-area.wrong-highlight { animation:wrongFlash 1s ease; }
+        @keyframes correctFlash { 0%,100%{box-shadow:0 5px 20px rgba(0,0,0,.2)} 50%{box-shadow:0 0 30px rgba(81,207,102,.6)} }
+        @keyframes wrongFlash { 0%,100%{box-shadow:0 5px 20px rgba(0,0,0,.2)} 50%{box-shadow:0 0 30px rgba(255,107,107,.6)} }
 
         .answer-label {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            font-size: 1.5em;
-            font-weight: bold;
+            position:absolute; top:10px; left:15px; font-size:1.5em; font-weight:bold;
         }
+        .o-area .answer-label { color:#51cf66; }
+        .x-area .answer-label { color:#ff6b6b; }
 
-        .answer-area.o-area .answer-label {
-            color: #51cf66;
+        .player-token {
+            display:flex; flex-direction:column; align-items:center;
+            margin:8px; padding:6px;
         }
-
-        .answer-area.x-area .answer-label {
-            color: #ff6b6b;
+        .player-avatar {
+            width:45px; height:45px; border-radius:50%; display:flex; align-items:center;
+            justify-content:center; font-size:1.6em; border:3px solid rgba(255,255,255,.8);
+            color:#fff; text-shadow:1px 1px 3px rgba(0,0,0,.5); box-shadow:0 4px 12px rgba(0,0,0,.2);
         }
-
-        .player {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            position: absolute;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2em;
-            border: 2px solid rgba(0, 0, 0, 0.2);
-            font-weight: bold;
-            color: white;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-            cursor: move;
-            user-select: none;
+        .player-token-name {
+            font-size:.7em; font-weight:bold; margin-top:4px; color:#333;
+            background:rgba(255,255,255,.9); padding:2px 6px; border-radius:4px;
         }
-
-        .player-info {
-            position: absolute;
-            top: 5px;
-            left: 5px;
-            font-size: 0.7em;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 2px 5px;
-            border-radius: 3px;
-            color: white;
-        }
+        .player-token.eliminated { opacity:.3; }
 
         .players-status {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
-            margin-bottom: 20px;
+            background:#fff; border-radius:15px; padding:15px;
+            box-shadow:0 5px 20px rgba(0,0,0,.2); margin-bottom:20px;
         }
-
-        .players-status h3 {
-            color: #333;
-            margin-bottom: 15px;
+        .players-status h3 { color:#333; margin-bottom:10px; font-size:1em; }
+        .status-grid { display:flex; flex-wrap:wrap; gap:8px; }
+        .player-status-chip {
+            display:flex; align-items:center; gap:6px; padding:6px 10px;
+            background:#f5f5f5; border-radius:8px; font-size:.85em;
         }
-
-        .player-status-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin: 10px 0;
-            padding: 10px;
-            background: #f5f5f5;
-            border-radius: 8px;
-        }
-
-        .status-color {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-
-        .status-info {
-            flex: 1;
-        }
-
-        .status-name {
-            font-weight: bold;
-            color: #333;
-        }
-
-        .status-lives {
-            color: #666;
-            font-size: 0.9em;
-        }
-
-        .status-lives .heart {
-            color: #ff6b6b;
-        }
-
-        .status-eliminated {
-            background: #f0f0f0;
-            opacity: 0.6;
-        }
-
-        .status-eliminated .status-name {
-            text-decoration: line-through;
-            color: #999;
-        }
-
-        .game-over-screen {
-            display: none;
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
-            text-align: center;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-        }
-
-        .game-over-screen h2 {
-            color: #333;
-            margin-bottom: 20px;
-            font-size: 2em;
-        }
-
-        .winner {
-            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-size: 1.5em;
-            margin: 20px 0;
-        }
-
-        .restart-button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 15px 40px;
-            font-size: 1.2em;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-top: 20px;
-        }
-
-        .restart-button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
-        }
+        .player-status-chip.eliminated { opacity:.5; text-decoration:line-through; }
+        .status-dot { width:12px; height:12px; border-radius:50%; flex-shrink:0; }
 
         .controls-info {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 20px;
-            text-align: center;
-            font-size: 0.9em;
+            background:rgba(255,255,255,.1); color:#fff; padding:12px;
+            border-radius:10px; text-align:center; font-size:.9em;
         }
 
-        @media (max-width: 600px) {
-            .selection-screen {
-                padding: 20px;
-            }
+        /* ===== 게임 오버 ===== */
+        .gameover-screen {
+            display:none; background:#fff; border-radius:20px; padding:40px;
+            text-align:center; box-shadow:0 10px 40px rgba(0,0,0,.3);
+        }
+        .gameover-screen h2 { color:#333; margin-bottom:20px; font-size:2em; }
+        .winner-text {
+            background:linear-gradient(135deg,#ffd700,#ffed4e);
+            -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+            font-size:1.5em; margin:20px 0;
+        }
+        .ranking-list {
+            margin:20px 0; padding:20px; background:#f9f9f9;
+            border-radius:10px; text-align:left;
+        }
+        .rank-item {
+            padding:10px; display:flex; align-items:center; gap:10px; margin:5px 0;
+        }
+        .rank-number { font-size:1.5em; font-weight:bold; width:50px; text-align:center; }
+        .rank-emoji { font-size:1.5em; }
+        .rank-name { flex:1; font-weight:bold; }
 
-            .selection-screen h1 {
-                font-size: 1.5em;
-            }
+        /* ===== 보너스 오버레이 ===== */
+        .bonus-overlay {
+            display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+            background:rgba(0,0,0,.8); z-index:1000; flex-direction:column;
+            align-items:center; justify-content:center; font-size:3em;
+            color:#ffd700; text-align:center;
+        }
+        .bonus-overlay.show { display:flex; animation:bonusAnim 2s ease-in-out forwards; }
+        @keyframes bonusAnim { 0%{opacity:0;transform:scale(.5)} 50%{opacity:1;transform:scale(1.2)} 100%{opacity:0;transform:scale(.5)} }
 
-            .quiz-question {
-                font-size: 1.2em;
-            }
+        .hidden { display:none !important; }
 
-            .game-board-container {
-                grid-template-columns: 1fr;
-            }
-
-            .answer-area {
-                min-height: 200px;
-            }
-
-            .player {
-                width: 35px;
-                height: 35px;
-                font-size: 1em;
-            }
+        @media(max-width:600px) {
+            .lobby-screen { padding:20px; }
+            .lobby-screen h1 { font-size:1.5em; }
+            .room-code-display { font-size:2em; letter-spacing:5px; }
+            .quiz-question { font-size:1.2em; }
+            .game-board-container { grid-template-columns:1fr; }
+            .answer-area { min-height:180px; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- 플레이어 선택 화면 -->
-        <div class="selection-screen" id="selectionScreen">
-            <h1>🎮 O/X 상식퀴즈 게임</h1>
-            
-            <div id="playersInput"></div>
-            
-            <button class="start-button" id="startButton" disabled>게임 시작</button>
+<div class="container">
+
+    <!-- ===== 로비 화면 ===== -->
+    <div class="lobby-screen" id="lobbyScreen">
+        <h1>🎮 O/X 상식퀴즈 멀티플레이</h1>
+        <p class="subtitle">방을 만들거나 코드로 참가하세요!</p>
+
+        <!-- 모드 선택 -->
+        <div id="modeSelection" class="mode-buttons">
+            <button class="mode-btn host-btn" onclick="showHostUI()">🏠 방 만들기</button>
+            <button class="mode-btn join-btn" onclick="showJoinUI()">🚪 방 참가하기</button>
         </div>
 
-        <!-- 게임 화면 -->
-        <div class="game-screen" id="gameScreen">
-            <div class="quiz-area">
-                <div class="quiz-number" id="quizNumber">문제 1/10</div>
-                <div class="quiz-question" id="quizQuestion">문제가 로드 중입니다...</div>
-                <div class="quiz-timer" id="quizTimer">15초</div>
-            </div>
-
-            <div class="players-status" id="playersStatus"></div>
-
-            <div class="game-board-container">
-                <div class="answer-area o-area" id="oArea">
-                    <div class="answer-label">O(참)</div>
-                </div>
-                <div class="answer-area x-area" id="xArea">
-                    <div class="answer-label">X(거짓)</div>
-                </div>
-            </div>
-
-            <div class="controls-info">
-                🖱️ 마우스/터치로 이동하거나<br>
-                ⌨️ 화살표 키 또는 WASD로 조종하세요
+        <!-- 호스트 UI -->
+        <div id="hostUI" class="room-section hidden">
+            <h3>방이 생성되었습니다!</h3>
+            <div class="room-code-display" id="roomCodeDisplay"></div>
+            <p style="color:#666;margin-bottom:10px">이 코드를 친구들에게 공유하세요</p>
+            <div class="input-row">
+                <input type="text" id="hostNameInput" placeholder="호스트 닉네임" maxlength="10">
+                <button class="action-btn btn-primary" onclick="createRoom()">방 개설</button>
             </div>
         </div>
 
-        <!-- 게임 오버 화면 -->
-        <div class="game-over-screen" id="gameOverScreen">
-            <h2>게임 종료!</h2>
-            <div id="gameOverContent"></div>
-            <button class="restart-button" id="restartButton">처음부터 시작</button>
+        <!-- 참가자 UI -->
+        <div id="joinUI" class="room-section hidden">
+            <h3>방 코드를 입력하세요</h3>
+            <div class="input-row">
+                <input type="text" id="roomCodeInput" placeholder="방 코드 (4자리)" maxlength="4" style="text-transform:uppercase;letter-spacing:4px;text-align:center;width:150px">
+                <input type="text" id="joinNameInput" placeholder="닉네임" maxlength="10">
+                <button class="action-btn btn-success" onclick="joinRoom()">참가</button>
+            </div>
+        </div>
+
+        <!-- 대기실 -->
+        <div id="waitingRoom" class="waiting-area hidden">
+            <div class="player-count">방 코드: <span id="displayRoomCode" style="color:#764ba2;letter-spacing:3px"></span> | 접속: <span id="playerCountDisplay">0</span>명</div>
+            <h3>대기 중인 플레이어</h3>
+            <div class="players-list" id="playersList"></div>
+            <div class="bottom-buttons">
+                <button class="action-btn btn-success" id="readyBtn" onclick="toggleReady()">✔ 준비 완료</button>
+                <button class="action-btn btn-primary" id="startBtn" onclick="startGame()" class="hidden">🎮 게임 시작</button>
+                <button class="action-btn btn-danger" onclick="leaveRoom()">🚪 나가기</button>
+            </div>
         </div>
     </div>
 
-    <script>
-        // 게임 설정
-        const COLORS = [
-            { name: '빨강', hex: '#ff6b6b', emoji: '🔴' },
-            { name: '파랑', hex: '#4c6ef5', emoji: '🔵' },
-            { name: '초록', hex: '#51cf66', emoji: '💚' },
-            { name: '노랑', hex: '#ffd93d', emoji: '💛' },
-            { name: '보라', hex: '#c084fc', emoji: '🟣' },
-            { name: '주황', hex: '#ff922b', emoji: '🟠' },
-            { name: '핑크', hex: '#ff6b9d', emoji: '💗' },
-            { name: '민트', hex: '#06d6a0', emoji: '💚' }
-        ];
+    <!-- ===== 게임 화면 ===== -->
+    <div class="game-screen" id="gameScreen">
+        <div class="game-header">
+            <div class="game-header-left">🎮 <span id="gameRoomCode"></span></div>
+            <div style="display:flex;gap:10px">
+                <button class="btn-warning" id="pauseBtn" onclick="togglePause()" style="display:none">⏸ 일시정지</button>
+                <button class="btn-danger" id="stopBtn" onclick="stopGame()" style="display:none">⏹ 중지</button>
+            </div>
+        </div>
 
-        const QUIZZES = [
-            { q: '서울은 한국의 수도이다.', a: true },
-            { q: '지구는 태양 주위를 돈다.', a: true },
-            { q: '고양이는 초식동물이다.', a: false },
-            { q: '1+1은 2이다.', a: true },
-            { q: '펭귄은 날 수 있는 새이다.', a: false },
-            { q: '물은 화학식으로 H2O이다.', a: true },
-            { q: '금은 은보다 무겁다.', a: true },
-            { q: '뱀은 다리가 있다.', a: false },
-            { q: '달은 지구의 위성이다.', a: true },
-            { q: '염소는 노란색이다.', a: false }
-        ];
+        <div class="quiz-area" id="quizArea">
+            <div class="quiz-number" id="quizNumber">문제 1/10</div>
+            <div class="quiz-question" id="quizQuestion">준비 중...</div>
+            <div class="quiz-timer" id="quizTimer">15초</div>
+        </div>
 
-        // 게임 상태
-        let gameState = {
-            players: [],
-            currentQuizIndex: 0,
-            gameActive: true,
-            selectedColors: new Set()
-        };
+        <div class="result-banner" id="resultBanner"></div>
 
-        // 초기화
-        function init() {
-            renderColorSelection();
-            document.getElementById('startButton').addEventListener('click', startGame);
-            document.getElementById('restartButton').addEventListener('click', () => location.reload());
+        <div class="players-status" id="playersStatus">
+            <h3>플레이어 현황</h3>
+            <div class="status-grid" id="statusGrid"></div>
+        </div>
+
+        <div class="game-board-container" id="gameBoardContainer">
+            <div class="answer-area o-area" id="oArea" onclick="selectAnswer(true)">
+                <div class="answer-label">⭕ O (참)</div>
+            </div>
+            <div class="answer-area x-area" id="xArea" onclick="selectAnswer(false)">
+                <div class="answer-label">❌ X (거짓)</div>
+            </div>
+        </div>
+
+        <div class="controls-info">👆 O 또는 X 영역을 클릭하여 답을 선택하세요</div>
+    </div>
+
+    <!-- ===== 보너스 오버레이 ===== -->
+    <div class="bonus-overlay" id="bonusOverlay">
+        <div>🎊 보너스 타임! 🎊</div>
+        <div style="font-size:.5em;margin-top:20px">한 목숨씩 더 드릴게요!</div>
+    </div>
+
+    <!-- ===== 게임 오버 ===== -->
+    <div class="gameover-screen" id="gameoverScreen">
+        <h2>🏆 게임 종료!</h2>
+        <div id="gameoverContent"></div>
+        <div class="ranking-list" id="rankingList"></div>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+            <button class="action-btn btn-primary" onclick="backToLobby()">🔙 로비로</button>
+            <button class="action-btn btn-success" id="replayBtn" onclick="replayGame()" style="display:none">🔄 다시하기</button>
+        </div>
+    </div>
+</div>
+
+<!-- Firebase SDK (CDN) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+<script>
+// ===== Firebase 초기화 =====
+const firebaseConfig = {
+    apiKey: "AIzaSyAm_bADKYdS-8b_dsbcQ6bGxQQFkGXClTg",
+    authDomain: "aics-worksho-c390c.firebaseapp.com",
+    databaseURL: "https://aics-worksho-c390c-default-rtdb.firebaseio.com",
+    projectId: "aics-worksho-c390c",
+    storageBucket: "aics-worksho-c390c.firebasestorage.app",
+    messagingSenderId: "883167011504",
+    appId: "1:883167011504:web:e7e2a7dda869889220d175"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ===== 상수 =====
+const EMOJIS = ['🐱','🐶','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵'];
+const COLORS = ['#FF6B6B','#4ECDC4','#45B7D1','#FFA07A','#98D8C8','#F7DC6F','#BB8FCE','#85C1E2','#F8B88B','#ABEBC6','#F1948A','#AED6F1','#F5B041','#D7BDE2','#A9DFBF'];
+
+const QUIZZES = [
+    {q:'서울은 한국의 수도이다.',a:true},
+    {q:'지구는 태양 주위를 돈다.',a:true},
+    {q:'고양이는 초식동물이다.',a:false},
+    {q:'1+1은 2이다.',a:true},
+    {q:'펭귄은 날 수 있는 새이다.',a:false},
+    {q:'물은 화학식으로 H2O이다.',a:true},
+    {q:'금은 은보다 무겁다.',a:true},
+    {q:'뱀은 다리가 있다.',a:false},
+    {q:'달은 지구의 위성이다.',a:true},
+    {q:'염소는 노란색이다.',a:false}
+];
+
+const TIMER_SEC = 15;
+
+// ===== 로컬 상태 =====
+let myId = 'p_' + Date.now() + '_' + Math.random().toString(36).substr(2,6);
+let myName = '';
+let roomCode = '';
+let isHost = false;
+let roomRef = null;
+let listeners = [];
+let timerInterval = null;
+let currentQuizIdx = -1;
+let myAnswer = null; // null, true(O), false(X)
+let gamePhase = 'lobby'; // lobby, playing, paused, result, gameover
+
+// ===== 방 코드 생성 =====
+function generateRoomCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    return code;
+}
+
+// ===== UI 전환 =====
+function showHostUI() {
+    document.getElementById('modeSelection').classList.add('hidden');
+    document.getElementById('hostUI').classList.remove('hidden');
+    document.getElementById('joinUI').classList.add('hidden');
+    roomCode = generateRoomCode();
+    document.getElementById('roomCodeDisplay').textContent = roomCode;
+    document.getElementById('hostNameInput').focus();
+}
+
+function showJoinUI() {
+    document.getElementById('modeSelection').classList.add('hidden');
+    document.getElementById('hostUI').classList.add('hidden');
+    document.getElementById('joinUI').classList.remove('hidden');
+    document.getElementById('roomCodeInput').focus();
+}
+
+// ===== 방 만들기 (호스트) =====
+async function createRoom() {
+    myName = document.getElementById('hostNameInput').value.trim();
+    if (!myName) return alert('닉네임을 입력해주세요!');
+
+    isHost = true;
+    roomRef = db.ref('rooms/' + roomCode);
+
+    const roomData = {
+        code: roomCode,
+        hostId: myId,
+        state: 'waiting', // waiting, playing, paused, showAnswer, gameover
+        currentQuiz: -1,
+        timerEnd: 0,
+        quizzes: QUIZZES,
+        createdAt: firebase.database.ServerValue.TIMESTAMP
+    };
+
+    await roomRef.set(roomData);
+
+    // 호스트를 플레이어로 추가
+    await addPlayerToRoom();
+
+    // 대기실 표시
+    showWaitingRoom();
+    listenToRoom();
+}
+
+// ===== 방 참가하기 =====
+async function joinRoom() {
+    const code = document.getElementById('roomCodeInput').value.trim().toUpperCase();
+    myName = document.getElementById('joinNameInput').value.trim();
+
+    if (!code || code.length !== 4) return alert('방 코드 4자리를 입력해주세요!');
+    if (!myName) return alert('닉네임을 입력해주세요!');
+
+    roomCode = code;
+    roomRef = db.ref('rooms/' + roomCode);
+
+    // 방 존재 여부 확인
+    const snap = await roomRef.once('value');
+    if (!snap.exists()) return alert('존재하지 않는 방입니다!');
+
+    const roomData = snap.val();
+    if (roomData.state !== 'waiting') return alert('이미 게임이 진행 중입니다!');
+
+    isHost = false;
+    await addPlayerToRoom();
+    showWaitingRoom();
+    listenToRoom();
+}
+
+// ===== 플레이어 추가 =====
+async function addPlayerToRoom() {
+    const playersRef = roomRef.child('players');
+    const snap = await playersRef.once('value');
+    const count = snap.exists() ? Object.keys(snap.val()).length : 0;
+
+    const playerData = {
+        name: myName,
+        emoji: EMOJIS[count % EMOJIS.length],
+        color: COLORS[count % COLORS.length],
+        lives: 2,
+        eliminated: false,
+        ready: isHost,
+        answer: 'none', // 'none','o','x'
+        isHost: isHost
+    };
+
+    await roomRef.child('players/' + myId).set(playerData);
+
+    // 연결 해제 시 플레이어 삭제
+    roomRef.child('players/' + myId).onDisconnect().remove();
+}
+
+// ===== 대기실 표시 =====
+function showWaitingRoom() {
+    document.getElementById('hostUI').classList.add('hidden');
+    document.getElementById('joinUI').classList.add('hidden');
+    document.getElementById('modeSelection').classList.add('hidden');
+    document.getElementById('waitingRoom').classList.remove('hidden');
+    document.getElementById('displayRoomCode').textContent = roomCode;
+
+    // 호스트만 시작 버튼 표시
+    const startBtn = document.getElementById('startBtn');
+    if (isHost) {
+        startBtn.style.display = 'inline-block';
+    } else {
+        startBtn.style.display = 'none';
+    }
+}
+
+// ===== Firebase 리스너 =====
+function listenToRoom() {
+    // 플레이어 목록 감시
+    const playersRef = roomRef.child('players');
+    const pListener = playersRef.on('value', snap => {
+        if (!snap.exists()) return;
+        renderPlayersList(snap.val());
+    });
+    listeners.push({ ref: playersRef, event: 'value', cb: pListener });
+
+    // 게임 상태 감시
+    const stateListener = roomRef.on('value', snap => {
+        if (!snap.exists()) return;
+        const data = snap.val();
+        handleStateChange(data);
+    });
+    listeners.push({ ref: roomRef, event: 'value', cb: stateListener });
+}
+
+// ===== 상태 변화 처리 =====
+function handleStateChange(data) {
+    const state = data.state;
+    const players = data.players || {};
+
+    if (state === 'playing' && gamePhase !== 'playing') {
+        gamePhase = 'playing';
+        showGameScreen(data);
+    }
+
+    if (state === 'playing' || state === 'showAnswer') {
+        updateGameUI(data);
+    }
+
+    if (state === 'paused') {
+        gamePhase = 'paused';
+    }
+
+    if (state === 'showAnswer') {
+        gamePhase = 'result';
+        showAnswerResult(data);
+    }
+
+    if (state === 'gameover') {
+        gamePhase = 'gameover';
+        showGameOver(data);
+    }
+
+    if (state === 'waiting' && gamePhase !== 'lobby') {
+        gamePhase = 'lobby';
+        backToLobbyUI();
+    }
+}
+
+// ===== 플레이어 목록 렌더링 =====
+function renderPlayersList(players) {
+    const list = document.getElementById('playersList');
+    const countEl = document.getElementById('playerCountDisplay');
+    const entries = Object.entries(players);
+    countEl.textContent = entries.length;
+
+    list.innerHTML = entries.map(([id, p]) => `
+        <div class="player-item ${id === myId ? 'me' : ''}">
+            <div class="player-item-left">
+                <div class="player-item-emoji">${p.emoji}</div>
+                <div class="player-item-name">${p.name}${id === myId ? ' (나)' : ''}</div>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center">
+                ${p.isHost ? '<span class="host-badge">👑 방장</span>' : ''}
+                ${p.ready ? '<span class="ready-badge">✔ Ready</span>' : ''}
+            </div>
+        </div>
+    `).join('');
+
+    // 호스트: 모든 플레이어 준비됨 확인
+    if (isHost) {
+        const allReady = entries.every(([, p]) => p.ready);
+        const startBtn = document.getElementById('startBtn');
+        startBtn.disabled = !allReady || entries.length < 1;
+    }
+}
+
+// ===== 준비 토글 =====
+async function toggleReady() {
+    const snap = await roomRef.child('players/' + myId + '/ready').once('value');
+    const current = snap.val();
+    await roomRef.child('players/' + myId + '/ready').set(!current);
+
+    const btn = document.getElementById('readyBtn');
+    btn.textContent = current ? '✔ 준비 완료' : '✔ 준비 취소';
+    btn.style.background = current ? '' : 'linear-gradient(135deg,#ffa500,#ff8c00)';
+}
+
+// ===== 방 나가기 =====
+async function leaveRoom() {
+    cleanup();
+    await roomRef.child('players/' + myId).remove();
+
+    // 호스트가 나가면 방 삭제
+    if (isHost) {
+        await roomRef.remove();
+    }
+    location.reload();
+}
+
+// ===== 게임 시작 (호스트만) =====
+async function startGame() {
+    if (!isHost) return;
+
+    // 모든 플레이어 초기화
+    const snap = await roomRef.child('players').once('value');
+    const players = snap.val();
+    const updates = {};
+    Object.keys(players).forEach(id => {
+        updates[`players/${id}/lives`] = 2;
+        updates[`players/${id}/eliminated`] = false;
+        updates[`players/${id}/answer`] = 'none';
+    });
+    updates['state'] = 'playing';
+    updates['currentQuiz'] = 0;
+    updates['timerEnd'] = Date.now() + (TIMER_SEC * 1000);
+
+    await roomRef.update(updates);
+}
+
+// ===== 게임 화면 표시 =====
+function showGameScreen(data) {
+    document.getElementById('lobbyScreen').style.display = 'none';
+    document.getElementById('gameScreen').style.display = 'block';
+    document.getElementById('gameoverScreen').style.display = 'none';
+    document.getElementById('gameRoomCode').textContent = '방: ' + roomCode;
+
+    // 호스트만 컨트롤 표시
+    if (isHost) {
+        document.getElementById('pauseBtn').style.display = 'inline-block';
+        document.getElementById('stopBtn').style.display = 'inline-block';
+    }
+
+    startLocalTimer(data);
+}
+
+// ===== 게임 UI 업데이트 =====
+function updateGameUI(data) {
+    const idx = data.currentQuiz;
+    const quizzes = data.quizzes || QUIZZES;
+    const players = data.players || {};
+
+    if (idx >= 0 && idx < quizzes.length) {
+        const quiz = quizzes[idx];
+        document.getElementById('quizNumber').textContent = `문제 ${idx + 1}/${quizzes.length}`;
+        document.getElementById('quizQuestion').textContent = quiz.q;
+
+        // 새 문제가 시작되면 타이머 리셋
+        if (idx !== currentQuizIdx) {
+            currentQuizIdx = idx;
+            myAnswer = null;
+            document.getElementById('resultBanner').style.display = 'none';
+            document.getElementById('oArea').classList.remove('correct-highlight','wrong-highlight');
+            document.getElementById('xArea').classList.remove('correct-highlight','wrong-highlight');
+            startLocalTimer(data);
+        }
+    }
+
+    // O/X 영역에 플레이어 토큰 표시
+    renderPlayerTokens(players);
+    renderStatusGrid(players);
+}
+
+// ===== 플레이어 토큰 렌더링 =====
+function renderPlayerTokens(players) {
+    const oArea = document.getElementById('oArea');
+    const xArea = document.getElementById('xArea');
+
+    // 기존 토큰 제거 (라벨 제외)
+    oArea.querySelectorAll('.player-token').forEach(el => el.remove());
+    xArea.querySelectorAll('.player-token').forEach(el => el.remove());
+
+    Object.entries(players).forEach(([id, p]) => {
+        const token = document.createElement('div');
+        token.className = 'player-token' + (p.eliminated ? ' eliminated' : '');
+        token.innerHTML = `
+            <div class="player-avatar" style="background:${p.color}">${p.emoji}</div>
+            <div class="player-token-name">${p.name}${id === myId ? '(나)' : ''}</div>
+        `;
+
+        if (p.answer === 'o') {
+            oArea.appendChild(token);
+        } else if (p.answer === 'x') {
+            xArea.appendChild(token);
+        }
+        // 'none'이면 어디에도 표시하지 않음 (아직 선택 안 함)
+    });
+}
+
+// ===== 상태 그리드 =====
+function renderStatusGrid(players) {
+    const grid = document.getElementById('statusGrid');
+    grid.innerHTML = Object.entries(players).map(([id, p]) => `
+        <div class="player-status-chip ${p.eliminated ? 'eliminated' : ''}">
+            <div class="status-dot" style="background:${p.color}"></div>
+            <span>${p.emoji} ${p.name}</span>
+            <span>${p.eliminated ? '💀' : '❤️'.repeat(Math.max(0, p.lives))}</span>
+        </div>
+    `).join('');
+}
+
+// ===== 답 선택 =====
+async function selectAnswer(isO) {
+    if (gamePhase !== 'playing') return;
+
+    // 이미 탈락했으면 무시
+    const mySnap = await roomRef.child('players/' + myId).once('value');
+    const me = mySnap.val();
+    if (!me || me.eliminated) return;
+
+    myAnswer = isO;
+    await roomRef.child('players/' + myId + '/answer').set(isO ? 'o' : 'x');
+}
+
+// ===== 로컬 타이머 =====
+function startLocalTimer(data) {
+    if (timerInterval) clearInterval(timerInterval);
+
+    const timerEl = document.getElementById('quizTimer');
+    const timerEnd = data.timerEnd;
+
+    timerInterval = setInterval(async () => {
+        const now = Date.now();
+        const left = Math.max(0, Math.ceil((timerEnd - now) / 1000));
+        timerEl.textContent = left + '초';
+
+        if (left <= 3) {
+            timerEl.classList.add('urgent');
+            if (left > 0) playBeep();
+        } else {
+            timerEl.classList.remove('urgent');
         }
 
-        // 플레이어 수 선택
-        function renderColorSelection() {
-            const container = document.getElementById('playersInput');
-            container.innerHTML = '<p style="margin-bottom: 15px; color: #666;">플레이어 수를 선택하세요 (2-4명):</p>';
-            
-            for (let i = 2; i <= 4; i++) {
-                const btn = document.createElement('button');
-                btn.textContent = `${i}명`;
-                btn.className = 'start-button';
-                btn.style.margin = '5px';
-                btn.onclick = () => selectPlayers(i);
-                container.appendChild(btn);
+        if (left <= 0) {
+            clearInterval(timerInterval);
+            timerEl.textContent = '0초';
+
+            // 호스트만 정답 체크 실행
+            if (isHost) {
+                await checkAnswers();
             }
         }
+    }, 200);
+}
 
-        function selectPlayers(count) {
-            gameState.players = [];
-            gameState.selectedColors.clear();
-            
-            const container = document.getElementById('playersInput');
-            container.innerHTML = '';
+// ===== 정답 체크 (호스트) =====
+async function checkAnswers() {
+    const snap = await roomRef.once('value');
+    const data = snap.val();
+    if (!data || data.state !== 'playing') return;
 
-            for (let i = 0; i < count; i++) {
-                const playerDiv = document.createElement('div');
-                playerDiv.style.margin = '15px 0';
+    const idx = data.currentQuiz;
+    const quizzes = data.quizzes || QUIZZES;
+    if (idx >= quizzes.length) return;
 
-                const label = document.createElement('label');
-                label.textContent = `플레이어 ${i + 1}`;
-                label.style.display = 'block';
-                label.style.marginBottom = '8px';
-                label.style.color = '#333';
-                label.style.fontWeight = 'bold';
+    const correctAnswer = quizzes[idx].a;
+    const players = data.players || {};
+    const updates = {};
 
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.placeholder = `플레이어 ${i + 1} 이름`;
-                input.className = 'player-name-input';
-                input.id = `playerName${i}`;
+    // 정답 결과 저장
+    updates['lastCorrectAnswer'] = correctAnswer;
+    updates['state'] = 'showAnswer';
 
-                playerDiv.appendChild(label);
-                playerDiv.appendChild(input);
-                container.appendChild(playerDiv);
-            }
+    Object.entries(players).forEach(([id, p]) => {
+        if (p.eliminated) return;
 
-            // 색상 선택
-            const colorLabel = document.createElement('p');
-            colorLabel.textContent = '각 플레이어의 색상을 선택하세요:';
-            colorLabel.style.marginTop = '20px';
-            colorLabel.style.fontWeight = 'bold';
-            colorLabel.style.color = '#333';
-            container.appendChild(colorLabel);
+        const playerAnswer = p.answer;
+        let isCorrect = false;
 
-            const colorGrid = document.createElement('div');
-            colorGrid.className = 'color-grid';
-            colorGrid.style.marginTop = '15px';
+        if (correctAnswer === true && playerAnswer === 'o') isCorrect = true;
+        if (correctAnswer === false && playerAnswer === 'x') isCorrect = true;
 
-            COLORS.forEach((color, idx) => {
-                const colorBtn = document.createElement('div');
-                colorBtn.className = 'color-option';
-                colorBtn.style.backgroundColor = color.hex;
-                colorBtn.textContent = color.emoji;
-                colorBtn.dataset.colorIdx = idx;
-                colorBtn.onclick = () => toggleColor(colorBtn, idx, count);
-                colorGrid.appendChild(colorBtn);
-            });
+        // 답을 안 고른 경우도 오답 처리
+        if (playerAnswer === 'none') isCorrect = false;
 
-            container.appendChild(colorGrid);
-
-            document.getElementById('startButton').disabled = false;
-        }
-
-        let selectedColorIndices = [];
-
-        function toggleColor(btn, idx, playerCount) {
-            const index = selectedColorIndices.indexOf(idx);
-            
-            if (index >= 0) {
-                selectedColorIndices.splice(index, 1);
-                btn.classList.remove('selected');
-            } else if (selectedColorIndices.length < playerCount) {
-                selectedColorIndices.push(idx);
-                btn.classList.add('selected');
-            } else {
-                alert(`${playerCount}명의 플레이어만 선택 가능합니다!`);
-            }
-
-            checkStartButton(playerCount);
-        }
-
-        function checkStartButton(playerCount) {
-            const allNames = [];
-            for (let i = 0; i < playerCount; i++) {
-                const name = document.getElementById(`playerName${i}`).value.trim();
-                allNames.push(name);
-            }
-
-            const allNamed = allNames.every(n => n.length > 0);
-            const allColorsSelected = selectedColorIndices.length === playerCount;
-
-            document.getElementById('startButton').disabled = !(allNamed && allColorsSelected);
-        }
-
-        function startGame() {
-            const playerCount = document.querySelectorAll('[id^="playerName"]').length;
-            
-            gameState.players = [];
-            for (let i = 0; i < playerCount; i++) {
-                const name = document.getElementById(`playerName${i}`).value.trim();
-                const colorIdx = selectedColorIndices[i];
-                const color = COLORS[colorIdx];
-
-                gameState.players.push({
-                    id: i,
-                    name: name,
-                    color: color,
-                    x: Math.random() * 200 + 50,
-                    y: Math.random() * 100 + 50,
-                    lives: 2,
-                    eliminated: false,
-                    inO: true
-                });
-            }
-
-            gameState.currentQuizIndex = 0;
-            gameState.gameActive = true;
-
-            document.getElementById('selectionScreen').style.display = 'none';
-            document.getElementById('gameScreen').style.display = 'block';
-
-            setupGame();
-            nextQuiz();
-        }
-
-        function setupGame() {
-            const oArea = document.getElementById('oArea');
-            const xArea = document.getElementById('xArea');
-
-            gameState.players.forEach(player => {
-                const playerEl = document.createElement('div');
-                playerEl.className = 'player';
-                playerEl.id = `player${player.id}`;
-                playerEl.style.backgroundColor = player.color.hex;
-                playerEl.textContent = player.name.charAt(0).toUpperCase();
-                playerEl.dataset.playerId = player.id;
-
-                if (Math.random() > 0.5) {
-                    xArea.appendChild(playerEl);
-                    player.inO = false;
-                } else {
-                    oArea.appendChild(playerEl);
-                    player.inO = true;
-                }
-
-                updatePlayerPosition(player, playerEl);
-                setupPlayerControls(player, playerEl);
-            });
-
-            updatePlayersStatus();
-        }
-
-        function updatePlayerPosition(player, element) {
-            const area = document.getElementById(player.inO ? 'oArea' : 'xArea');
-            const rect = area.getBoundingClientRect();
-            const containerRect = document.querySelector('.container').getBoundingClientRect();
-
-            let x = player.x;
-            let y = player.y;
-
-            if (x + 40 > rect.width) x = rect.width - 40;
-            if (y + 40 > rect.height) y = rect.height - 40;
-            if (x < 0) x = 0;
-            if (y < 0) y = 0;
-
-            player.x = x;
-            player.y = y;
-
-            element.style.left = x + 'px';
-            element.style.top = y + 'px';
-        }
-
-        function setupPlayerControls(player, element) {
-            let keys = {};
-
-            document.addEventListener('keydown', (e) => {
-                if (!gameState.gameActive || player.eliminated) return;
-                
-                keys[e.key.toLowerCase()] = true;
-                handleMovement(player, element, keys);
-            });
-
-            document.addEventListener('keyup', (e) => {
-                keys[e.key.toLowerCase()] = false;
-            });
-
-            element.addEventListener('touchstart', (e) => {
-                if (!gameState.gameActive || player.eliminated) return;
-                
-                const touch = e.touches[0];
-                const rect = element.getBoundingClientRect();
-                element.dataset.startX = touch.clientX;
-                element.dataset.startY = touch.clientY;
-            });
-
-            element.addEventListener('touchmove', (e) => {
-                if (!gameState.gameActive || player.eliminated) return;
-                
-                const touch = e.touches[0];
-                const startX = parseFloat(element.dataset.startX) || touch.clientX;
-                const startY = parseFloat(element.dataset.startY) || touch.clientY;
-
-                const diffX = touch.clientX - startX;
-                const diffY = touch.clientY - startY;
-
-                if (Math.abs(diffX) > 5) {
-                    player.x += diffX > 0 ? 5 : -5;
-                }
-                if (Math.abs(diffY) > 5) {
-                    player.y += diffY > 0 ? 5 : -5;
-                }
-
-                updatePlayerPosition(player, element);
-                element.dataset.startX = touch.clientX;
-                element.dataset.startY = touch.clientY;
-            });
-        }
-
-        function handleMovement(player, element, keys) {
-            const speed = 5;
-            let moved = false;
-
-            if (keys['arrowup'] || keys['w']) {
-                player.y = Math.max(0, player.y - speed);
-                moved = true;
-            }
-            if (keys['arrowdown'] || keys['s']) {
-                player.y += speed;
-                moved = true;
-            }
-            if (keys['arrowleft'] || keys['a']) {
-                player.x = Math.max(0, player.x - speed);
-                moved = true;
-            }
-            if (keys['arrowright'] || keys['d']) {
-                player.x += speed;
-                moved = true;
-            }
-
-            if (moved) {
-                updatePlayerPosition(player, element);
+        if (!isCorrect) {
+            const newLives = Math.max(0, p.lives - 1);
+            updates[`players/${id}/lives`] = newLives;
+            if (newLives <= 0) {
+                updates[`players/${id}/eliminated`] = true;
             }
         }
+    });
 
-        function nextQuiz() {
-            if (gameState.currentQuizIndex >= QUIZZES.length) {
-                endGame();
-                return;
-            }
+    await roomRef.update(updates);
 
-            const quiz = QUIZZES[gameState.currentQuizIndex];
-            document.getElementById('quizNumber').textContent = `문제 ${gameState.currentQuizIndex + 1}/10`;
-            document.getElementById('quizQuestion').textContent = quiz.q;
+    // 3초 후 다음 문제 or 게임 종료
+    setTimeout(() => advanceGame(), 3000);
+}
 
-            let timeLeft = 15;
-            document.getElementById('quizTimer').textContent = timeLeft + '초';
+// ===== 정답 결과 표시 =====
+function showAnswerResult(data) {
+    const correct = data.lastCorrectAnswer;
+    const banner = document.getElementById('resultBanner');
+    const oArea = document.getElementById('oArea');
+    const xArea = document.getElementById('xArea');
 
-            const timer = setInterval(() => {
-                timeLeft--;
-                document.getElementById('quizTimer').textContent = timeLeft + '초';
+    if (correct === true) {
+        oArea.classList.add('correct-highlight');
+        xArea.classList.add('wrong-highlight');
+        banner.textContent = '⭕ 정답은 O (참) 입니다!';
+        banner.className = 'result-banner correct';
+    } else {
+        xArea.classList.add('correct-highlight');
+        oArea.classList.add('wrong-highlight');
+        banner.textContent = '❌ 정답은 X (거짓) 입니다!';
+        banner.className = 'result-banner wrong';
+    }
+    banner.style.display = 'block';
 
-                if (timeLeft <= 0) {
-                    clearInterval(timer);
-                    checkAnswers(quiz.a);
-                }
-            }, 1000);
+    // 내 결과
+    const players = data.players || {};
+    const me = players[myId];
+    if (me) {
+        const myAns = me.answer;
+        let wasCorrect = false;
+        if (correct && myAns === 'o') wasCorrect = true;
+        if (!correct && myAns === 'x') wasCorrect = true;
+
+        if (wasCorrect) {
+            banner.textContent += ' ✅ 정답!';
+        } else {
+            banner.textContent += ' 😢 오답...';
         }
+    }
 
-        function checkAnswers(correctAnswer) {
-            const oArea = document.getElementById('oArea');
-            const xArea = document.getElementById('xArea');
+    renderPlayerTokens(data.players || {});
+    renderStatusGrid(data.players || {});
+}
 
-            gameState.players.forEach(player => {
-                if (player.eliminated) return;
+// ===== 다음 문제 진행 (호스트) =====
+async function advanceGame() {
+    if (!isHost) return;
 
-                const isInOArea = oArea.contains(document.getElementById(`player${player.id}`));
-                const playerAnswer = isInOArea;
-                const isCorrect = playerAnswer === correctAnswer;
+    const snap = await roomRef.once('value');
+    const data = snap.val();
+    if (!data) return;
 
-                if (!isCorrect) {
-                    player.lives--;
-                    if (player.lives <= 0) {
-                        player.eliminated = true;
-                        document.getElementById(`player${player.id}`).style.opacity = '0.3';
-                    }
-                }
-            });
+    const players = data.players || {};
+    const quizzes = data.quizzes || QUIZZES;
+    const nextIdx = data.currentQuiz + 1;
+    const activePlayers = Object.values(players).filter(p => !p.eliminated);
 
-            updatePlayersStatus();
+    // 모두 탈락 → 보너스 라운드
+    if (activePlayers.length === 0 && nextIdx < quizzes.length) {
+        await showBonusRound(players, nextIdx);
+        return;
+    }
 
-            const activePlayers = gameState.players.filter(p => !p.eliminated);
-            if (activePlayers.length <= 1) {
-                endGame();
-            } else {
-                gameState.currentQuizIndex++;
-                setTimeout(nextQuiz, 2000);
-            }
-        }
+    // 1명 이하 생존 또는 문제 소진 → 게임 종료
+    if (activePlayers.length <= 1 || nextIdx >= quizzes.length) {
+        await roomRef.update({ state: 'gameover' });
+        return;
+    }
 
-        function updatePlayersStatus() {
-            const statusHTML = gameState.players.map(player => {
-                const hearts = '❤️'.repeat(player.lives);
-                const statusClass = player.eliminated ? 'status-eliminated' : '';
-                
-                return `
-                    <div class="player-status-item ${statusClass}">
-                        <div class="status-color" style="background: ${player.color.hex}"></div>
-                        <div class="status-info">
-                            <div class="status-name">${player.name}</div>
-                            <div class="status-lives">${player.eliminated ? '탈락' : hearts}</div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
+    // 다음 문제
+    const updates = {
+        state: 'playing',
+        currentQuiz: nextIdx,
+        timerEnd: Date.now() + (TIMER_SEC * 1000),
+        lastCorrectAnswer: null
+    };
+    Object.keys(players).forEach(id => {
+        updates[`players/${id}/answer`] = 'none';
+    });
+    await roomRef.update(updates);
+}
 
-            document.getElementById('playersStatus').innerHTML = statusHTML;
-        }
+// ===== 보너스 라운드 =====
+async function showBonusRound(players, nextIdx) {
+    // 보너스 표시
+    const overlay = document.getElementById('bonusOverlay');
+    overlay.classList.add('show');
 
-        function endGame() {
-            gameState.gameActive = false;
-            document.getElementById('gameScreen').style.display = 'none';
-            document.getElementById('gameOverScreen').style.display = 'block';
+    const updates = {};
+    Object.keys(players).forEach(id => {
+        updates[`players/${id}/lives`] = 1;
+        updates[`players/${id}/eliminated`] = false;
+        updates[`players/${id}/answer`] = 'none';
+    });
 
-            const survivors = gameState.players.filter(p => !p.eliminated);
+    await roomRef.update(updates);
 
-            let content = '';
-            if (survivors.length === 1) {
-                const winner = survivors[0];
-                content = `<div class="winner">🏆 ${winner.name} 우승! 🏆</div>`;
-            } else if (survivors.length === 0) {
-                content = `<div class="winner">🎲 모두 탈락! 다시 도전하세요! 🎲</div>`;
-            } else {
-                content = `<div class="winner">🏆 ${survivors.map(p => p.name).join(', ')} 우승! 🏆</div>`;
-            }
+    setTimeout(async () => {
+        overlay.classList.remove('show');
+        await roomRef.update({
+            state: 'playing',
+            currentQuiz: nextIdx,
+            timerEnd: Date.now() + (TIMER_SEC * 1000),
+            lastCorrectAnswer: null
+        });
+    }, 2500);
+}
 
-            document.getElementById('gameOverContent').innerHTML = content;
-        }
+// ===== 게임 오버 =====
+function showGameOver(data) {
+    if (timerInterval) clearInterval(timerInterval);
 
-        // 게임 시작
-        init();
-    </script>
+    document.getElementById('gameScreen').style.display = 'none';
+    document.getElementById('gameoverScreen').style.display = 'block';
+
+    const players = data.players || {};
+    const sorted = Object.entries(players).sort(([,a],[,b]) => {
+        if (a.eliminated !== b.eliminated) return a.eliminated ? 1 : -1;
+        return b.lives - a.lives;
+    });
+
+    const survivors = sorted.filter(([,p]) => !p.eliminated);
+
+    let content = '';
+    if (survivors.length === 1) {
+        const [,w] = survivors[0];
+        content = `<div class="winner-text">${w.emoji} ${w.name} 우승! 🏆</div>`;
+    } else if (survivors.length === 0) {
+        content = `<div class="winner-text">🎲 모두 탈락! 다시 도전! 🎲</div>`;
+    } else {
+        content = `<div class="winner-text">🏆 ${survivors.map(([,p]) => `${p.emoji} ${p.name}`).join(', ')} 우승!</div>`;
+    }
+    document.getElementById('gameoverContent').innerHTML = content;
+
+    document.getElementById('rankingList').innerHTML = sorted.map(([,p], i) => `
+        <div class="rank-item">
+            <span class="rank-number">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i+1)+'위'}</span>
+            <span class="rank-emoji">${p.emoji}</span>
+            <span class="rank-name">${p.name}</span>
+            <span>${p.eliminated ? '💀 탈락' : '❤️'.repeat(p.lives)}</span>
+        </div>
+    `).join('');
+
+    if (isHost) {
+        document.getElementById('replayBtn').style.display = 'inline-block';
+    }
+}
+
+// ===== 일시정지 =====
+async function togglePause() {
+    if (!isHost) return;
+    const snap = await roomRef.child('state').once('value');
+    const cur = snap.val();
+    if (cur === 'playing') {
+        await roomRef.update({ state: 'paused' });
+    } else if (cur === 'paused') {
+        await roomRef.update({
+            state: 'playing',
+            timerEnd: Date.now() + (TIMER_SEC * 1000)
+        });
+    }
+}
+
+// ===== 게임 중지 =====
+async function stopGame() {
+    if (!isHost) return;
+    if (!confirm('게임을 중지하시겠습니까?')) return;
+
+    const snap = await roomRef.child('players').once('value');
+    const players = snap.val() || {};
+    const updates = { state: 'waiting', currentQuiz: -1 };
+    Object.keys(players).forEach(id => {
+        updates[`players/${id}/ready`] = false;
+        updates[`players/${id}/lives`] = 2;
+        updates[`players/${id}/eliminated`] = false;
+        updates[`players/${id}/answer`] = 'none';
+    });
+    await roomRef.update(updates);
+}
+
+// ===== 다시하기 =====
+async function replayGame() {
+    if (!isHost) return;
+    const snap = await roomRef.child('players').once('value');
+    const players = snap.val() || {};
+    const updates = {
+        state: 'playing',
+        currentQuiz: 0,
+        timerEnd: Date.now() + (TIMER_SEC * 1000),
+        lastCorrectAnswer: null
+    };
+    Object.keys(players).forEach(id => {
+        updates[`players/${id}/lives`] = 2;
+        updates[`players/${id}/eliminated`] = false;
+        updates[`players/${id}/answer`] = 'none';
+    });
+    await roomRef.update(updates);
+
+    document.getElementById('gameoverScreen').style.display = 'none';
+    document.getElementById('gameScreen').style.display = 'block';
+    gamePhase = 'playing';
+}
+
+// ===== 로비로 돌아가기 =====
+function backToLobby() {
+    cleanup();
+    location.reload();
+}
+
+function backToLobbyUI() {
+    if (timerInterval) clearInterval(timerInterval);
+    document.getElementById('gameScreen').style.display = 'none';
+    document.getElementById('gameoverScreen').style.display = 'none';
+    document.getElementById('lobbyScreen').style.display = 'block';
+    showWaitingRoom();
+    gamePhase = 'lobby';
+    currentQuizIdx = -1;
+}
+
+// ===== 정리 =====
+function cleanup() {
+    if (timerInterval) clearInterval(timerInterval);
+    listeners.forEach(l => l.ref.off(l.event, l.cb));
+    listeners = [];
+}
+
+// ===== 비프음 =====
+function playBeep() {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.frequency.value = 800;
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+        osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.1);
+    } catch(e) {}
+}
+
+// ===== Enter 키 처리 =====
+document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+        if (!document.getElementById('hostUI').classList.contains('hidden')) createRoom();
+        if (!document.getElementById('joinUI').classList.contains('hidden')) joinRoom();
+    }
+});
+</script>
 </body>
 </html>
